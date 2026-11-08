@@ -3940,6 +3940,9 @@ function renderAffretementConfirmationShell() {
         </div>
         <div id="affretement-quota-banner" class="hidden mb-4 p-3 rounded-lg text-sm border"></div>
         <div id="affretement-sent-status" class="hidden mb-4 p-3 rounded-lg text-sm"></div>
+        <div id="affretement-logo-hint" class="hidden mb-4 p-3 rounded-lg text-sm bg-amber-50 border border-amber-200 text-amber-800">
+            <i class="fa-solid fa-image mr-1"></i>Votre logo d'entreprise n'est pas encore configuré — ajoutez-le dans <button onclick="router('settings')" class="underline hover:no-underline font-medium">Paramètres → Entreprise</button> pour qu'il apparaisse sur ce document.
+        </div>
         <div class="bg-slate-100 rounded-xl border border-gray-200 p-4 md:p-6">
             <div id="affretement-preview" class="bg-white rounded-xl shadow-sm w-full overflow-hidden">
                 <p class="p-8 text-center text-gray-400">Chargement de la confirmation…</p>
@@ -3983,6 +3986,9 @@ async function loadAffretementConfirmationPage() {
         }
         renderSecureHtmlPreview(preview, data.html, 'Aucun contenu');
         if (emailInput) emailInput.value = data.subcontractor?.email || '';
+
+        const logoHintEl = document.getElementById('affretement-logo-hint');
+        if (logoHintEl) logoHintEl.classList.toggle('hidden', !!data.hasLogo);
 
         const quotaEl = document.getElementById('affretement-quota-banner');
         const quota = data.affretementQuota;
