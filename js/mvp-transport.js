@@ -915,6 +915,9 @@ function renderTransportDetailModal(t) {
     if (typeof canManageFinance === 'function' && canManageFinance() && t.status === 'Validé' && !t.invoice_draft_id && !isBillingBlocked(t)) {
         actionsHtml += `<button onclick="createInvoiceDraftFromTransport(${t.id})" class="px-3 py-1 bg-orange-600 text-white rounded text-xs hover:bg-orange-700">Préfacturer</button>`;
     }
+    if (typeof canWriteTransport === 'function' && canWriteTransport()) {
+        actionsHtml += `<button type="button" onclick="duplicateTransport(${t.id})" class="px-3 py-1 bg-teal-600 text-white rounded text-xs hover:bg-teal-700 mr-2" title="Créer un nouvel OT à partir de ce transport"><i class="fa-solid fa-copy mr-1"></i>Dupliquer</button>`;
+    }
     actionsEl.innerHTML = actionsHtml || '<span class="text-xs text-gray-400">Aucune action disponible pour votre rôle</span>';
 
     const billingEl = document.getElementById('td-billing-check');

@@ -11337,7 +11337,78 @@ function applyAddOrderPrefill(prefill = {}) {
         const driverSelect = document.getElementById('add-order-driver');
         if (driverSelect) driverSelect.value = String(prefill.driver_id);
     }
+    if (prefill.vehicle_id) {
+        const sel = document.getElementById('add-order-vehicle');
+        if (sel) sel.value = String(prefill.vehicle_id);
+    }
+    if (prefill.trailer_id) {
+        const sel = document.getElementById('add-order-trailer');
+        if (sel) sel.value = String(prefill.trailer_id);
+    }
+    if (prefill.assignment_type) {
+        const radio = document.querySelector(`input[name="add-order-assignment"][value="${prefill.assignment_type}"]`);
+        if (radio) { radio.checked = true; toggleAddOrderAssignment(); }
+    }
+    if (prefill.subcontractor_id) {
+        const sel = document.getElementById('add-order-subcontractor');
+        if (sel) sel.value = String(prefill.subcontractor_id);
+    }
+    if (prefill.transport_mode) {
+        const sel = document.getElementById('add-order-transport-mode');
+        if (sel) sel.value = prefill.transport_mode;
+    }
+    setVal('add-order-purchase-price', prefill.purchase_price);
+    setVal('add-order-notes', prefill.notes);
+    setVal('add-order-consignee-name', prefill.consignee_name);
+    setVal('add-order-shipper-ref', prefill.shipper_ref);
+    if (prefill.pallet_type) setVal('add-order-pallet-type', prefill.pallet_type);
+    if (prefill.pallet_count != null) setVal('add-order-pallet-count', prefill.pallet_count);
+    if (prefill.pallet_exchange != null) {
+        const cb = document.getElementById('add-order-pallet-exchange');
+        if (cb) cb.checked = !!prefill.pallet_exchange;
+    }
+    if (prefill.load_date) setVal('add-order-load-date', prefill.load_date);
+    if (prefill.delivery_date) setVal('add-order-delivery-date', prefill.delivery_date);
 }
+
+window.duplicateTransport = async function duplicateTransport(orderId) {
+    if (typeof canWriteTransport === 'function' && !canWriteTransport()) return;
+    try {
+        let t = typeof currentTransportDetail !== 'undefined' && currentTransportDetail?.id === orderId
+            ? currentTransportDetail
+            : await apiFetch(`transport-orders/${orderId}`).then(r => r.json()).then(j => j.data);
+        if (!t) { showToast('Transport introuvable', 'error'); return; }
+
+        if (typeof closeTransportDetail === 'function') closeTransportDetail();
+
+        openAddOrderModal({
+            fullMode: true,
+            client_id: t.client_id,
+            origin: t.origin,
+            dest: t.dest,
+            cargo: t.cargo,
+            price: t.price,
+            weight: t.weight,
+            volume: t.volume,
+            transport_mode: t.transport_mode,
+            assignment_type: t.assignment_type,
+            driver_id: t.driver_id,
+            vehicle_id: t.vehicle_id,
+            trailer_id: t.trailer_id,
+            subcontractor_id: t.subcontractor_id,
+            purchase_price: t.assignment_type === 'SUBCONTRACTED' ? t.purchase_price : undefined,
+            pallet_type: t.pallet_type,
+            pallet_count: t.pallet_count,
+            pallet_exchange: t.pallet_exchange,
+            notes: t.notes,
+            consignee_name: t.consignee_name,
+            shipper_ref: t.shipper_ref,
+        });
+        showToast(`Duplication de ${t.ref || `#${t.id}`} — modifiez les dates puis enregistrez`, 'info');
+    } catch (e) {
+        showToast('Erreur lors de la duplication', 'error');
+    }
+};
 
 function prefillAddOrderFromLast() {
     const last = [...(db.orders || [])].sort((a, b) => {
