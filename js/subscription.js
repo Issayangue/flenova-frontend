@@ -929,10 +929,22 @@ window.applyDemoBanner = function () {
         banner.classList.add('hidden');
         return;
     }
+    // Respect same-day dismissal
+    try {
+        if (localStorage.getItem('demo_banner_dismissed') === new Date().toDateString()) return;
+    } catch (_) {}
     const days = sub.demoDaysRemaining ?? '—';
     const endLabel = sub.demoEndsAt
         ? new Date(sub.demoEndsAt).toLocaleDateString('fr-FR')
         : '';
-    textEl.innerHTML = `<i class="fa-solid fa-gift mr-2"></i>Essai Premium — <strong>${days} jour(s)</strong> restant(s)${endLabel ? ` (jusqu'au ${endLabel})` : ''}. Toutes les fonctionnalités sont débloquées.${sub.targetPlanName ? ` Forfait prévu après l'essai : <strong>${sub.targetPlanName}</strong>.` : ''}`;
+    textEl.innerHTML = `<i class="fa-solid fa-gift text-indigo-400 mr-1"></i>Essai Premium — <strong>${days} j</strong> restant(s)${endLabel ? ` (jusqu'au ${endLabel})` : ''}.${sub.targetPlanName ? ` Forfait prévu : <strong>${sub.targetPlanName}</strong>.` : ''}`;
     banner.classList.remove('hidden');
+};
+
+window.dismissDemoBanner = function () {
+    const banner = document.getElementById('demo-banner');
+    if (banner) banner.classList.add('hidden');
+    try {
+        localStorage.setItem('demo_banner_dismissed', new Date().toDateString());
+    } catch (_) {}
 };

@@ -432,8 +432,11 @@
                 </div>
             </div>
 
-            <div id="demo-banner" class="hidden shrink-0 bg-gradient-to-r from-purple-700 to-blue-600 text-white px-6 py-2.5 text-sm">
-                <span id="demo-banner-text"><i class="fa-solid fa-gift mr-2"></i>Essai Premium en cours</span>
+            <div id="demo-banner" class="hidden shrink-0 bg-indigo-50 border-b border-indigo-100 px-4 py-1.5 text-xs text-indigo-700">
+                <div class="flex items-center justify-between gap-3 max-w-6xl mx-auto">
+                    <span id="demo-banner-text" class="flex items-center gap-1.5"><i class="fa-solid fa-gift text-indigo-400"></i>Essai Premium en cours</span>
+                    <button type="button" onclick="dismissDemoBanner()" class="shrink-0 text-indigo-400 hover:text-indigo-600 p-0.5" aria-label="Fermer" title="Masquer"><i class="fa-solid fa-xmark"></i></button>
+                </div>
             </div>
             <div id="grace-banner" class="hidden shrink-0 bg-amber-600 text-white px-4 sm:px-6 py-3 text-sm" role="alert" aria-hidden="true">
                 <div class="flex flex-wrap items-center justify-between gap-3 max-w-6xl mx-auto">
