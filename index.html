@@ -32,11 +32,12 @@
     <script src="/assets/vendor/html2pdf/html2pdf.bundle.min.js"></script>
 
     <!-- Custom CSS -->
-    <link rel="stylesheet" href="css/styles.css?v=d77f9b2abd">
+    <link rel="stylesheet" href="css/styles.css?v=7bc388c819">
     <link rel="stylesheet" href="css/dashboard-v2.css?v=64bf3605fd">
     <link rel="stylesheet" href="css/a11y.css?v=74e430a130">
     <link rel="stylesheet" href="css/responsive-touch.css?v=cba7c54a56">
     <link rel="stylesheet" href="css/shell-ui.css?v=d28e76630c">
+    <link rel="stylesheet" href="css/public-landing.css?v=751a72f003">
     <link rel="stylesheet" href="css/theme-dark.css?v=d209a00714">
 </head>
 
@@ -54,26 +55,34 @@
                 <div class="public-header-center hidden lg:flex">
                     <nav class="public-header-nav">
                         <button type="button" data-public-nav="home" onclick="publicRouter('home')" class="public-nav-btn">Accueil</button>
+                        <button type="button" onclick="publicScrollTo('produits')" class="public-nav-btn">Produits</button>
                         <button type="button" data-public-nav="fonctionnalites" onclick="publicRouter('fonctionnalites')" class="public-nav-btn">Fonctionnalités</button>
                         <button type="button" data-public-nav="tarifs" onclick="publicRouter('tarifs')" class="public-nav-btn">Tarifs</button>
+                        <button type="button" onclick="publicScrollTo('a-propos')" class="public-nav-btn">À propos</button>
                         <button type="button" data-public-nav="contact" onclick="publicRouter('contact')" class="public-nav-btn">Contact</button>
                     </nav>
                     <a href="login.html" class="public-btn-connect hidden lg:flex">Se Connecter</a>
+                    <button type="button" onclick="openPublicDemo()" class="pl-header-cta">Demander une démo</button>
                 </div>
-                <a href="login.html" class="public-btn-connect public-btn-connect-mobile lg:hidden">Se Connecter</a>
+                <div class="pl-header-mobile-actions lg:hidden">
+                    <button type="button" onclick="openPublicDemo()" class="pl-header-cta">Démo</button>
+                    <a href="login.html" class="public-btn-connect public-btn-connect-mobile">Se Connecter</a>
+                </div>
             </div>
             <nav class="public-header-nav-mobile lg:hidden">
                 <button type="button" data-public-nav="home" onclick="publicRouter('home')" class="public-nav-btn">Accueil</button>
+                <button type="button" onclick="publicScrollTo('produits')" class="public-nav-btn">Produits</button>
                 <button type="button" data-public-nav="fonctionnalites" onclick="publicRouter('fonctionnalites')" class="public-nav-btn">Fonctionnalités</button>
                 <button type="button" data-public-nav="tarifs" onclick="publicRouter('tarifs')" class="public-nav-btn">Tarifs</button>
+                <button type="button" onclick="publicScrollTo('a-propos')" class="public-nav-btn">À propos</button>
                 <button type="button" data-public-nav="contact" onclick="publicRouter('contact')" class="public-nav-btn">Contact</button>
             </nav>
         </header>
         <div id="public-announcement-mount"></div>
         <main id="public-content" class="public-content-area flex-1 min-h-0 overflow-y-auto"></main>
         <footer id="public-footer" class="public-footer py-6 text-center text-sm text-gray-500 border-t bg-gray-50">
-            <p>© Flenova — TMS transport &amp; logistique</p>
-            <p class="mt-1 text-xs text-gray-500">support@flenova.fr · 02 99 00 00 00</p>
+            <p>© Flenova — TMS transport &amp; logistique · un service de Yangue Technologies SASU</p>
+            <p class="mt-1 text-xs text-gray-500">support@flenova.fr</p>
             <div id="public-legal-footer" class="mt-3"></div>
         </footer>
     </div>
@@ -2180,18 +2189,19 @@
     <!-- JAVASCRIPT -->
     <script src="js/security.js?v=2a5e366b56"></script>
     <script src="js/api.js?v=d66a93bbec"></script>
-    <script src="js/legal-pages.js?v=7f7a4d6b73"></script>
+    <script src="js/legal-pages.js?v=48ba1b15c2"></script>
+    <script src="js/public-landing.js?v=0133f93a51"></script>
     <script src="js/commercial-pages.js?v=d187899cce"></script>
     <script src="js/platform-ops.js?v=5782e8e27c"></script>
     <script src="js/platform-crm.js?v=e66e044d08"></script>
     <script src="js/disputes.js?v=07ca2f2d41"></script>
     <script src="js/permissions.js?v=a8b2f8c9eb"></script>
-    <script src="js/subscription.js?v=5979b6bc01"></script>
+    <script src="js/subscription.js?v=a821db81fc"></script>
     <script src="js/ux-improvements.js?v=9f812cd3b2"></script>
     <script src="js/ux-deferred.js?v=3ea7912450"></script>
     <script src="js/live-map.js?v=bb5c1b8787"></script>
     <script src="js/document-ocr.js?v=43cc0681fb"></script>
-    <script src="js/app.js?v=39707526b1"></script>
+    <script src="js/app.js?v=737f4d5094"></script>
     <script src="js/mvp-transport.js?v=9b21f1f596"></script>
 </body>
 

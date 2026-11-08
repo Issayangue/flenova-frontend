@@ -350,13 +350,8 @@ function renderPublicReviewStars(rating) {
 }
 
 function renderPublicReviewsSection(reviews) {
-    if (!reviews?.length) {
-        return `<section class="public-testimonial public-reviews">
-            <div class="public-reviews-wrap">
-                <p class="public-reviews-empty">Aucun avis client pour le moment.</p>
-            </div>
-        </section>`;
-    }
+    // Aucun avis publié : pas de section (un « aucun avis » dessert la page).
+    if (!reviews?.length) return '';
 
     const avgRating = (reviews.reduce((sum, r) => sum + (Number(r.rating) || 0), 0) / reviews.length).toFixed(1);
     const slides = reviews.map((review, index) => {
@@ -549,18 +544,6 @@ const PUBLIC_MVP_STEPS = [
     { n: 5, title: 'Préfacturer', desc: 'Brouillon facture et export comptable' }
 ];
 
-function renderPublicSocialProof() {
-    const logos = ['LogiTrans Ouest', 'Transports MD', 'Routage Express', 'KB Fret', 'PME Routière'];
-    return `<section class="public-social-proof" aria-label="Transporteurs qui nous font confiance">
-        <div class="public-social-proof-inner">
-            <p class="public-social-proof-lead">Des transporteurs PME centralisent déjà leur exploitation avec Flenova</p>
-            <div class="public-social-proof-logos">
-                ${logos.map((name) => `<span class="public-social-logo">${escapePublicHtml(name)}</span>`).join('')}
-            </div>
-        </div>
-    </section>`;
-}
-
 function renderPublicPainPoints() {
     const items = [
         { icon: 'fa-table', title: 'Vous jonglez entre Excel SMS', desc: 'Plannings sur tableur, ressaisies multiples, infos dispersées… Centralisez tout dans un TMS unique.' },
@@ -708,8 +691,8 @@ function renderPublicCtaBand(title, subtitle) {
             <h2>${escapePublicHtml(title)}</h2>
             <p>${escapePublicHtml(subtitle)}</p>
             <div class="public-cta-band-actions">
-                <button type="button" class="public-btn-primary" onclick="publicRouterContactTrial()">Commencer l'essai gratuit</button>
-                <button type="button" class="public-btn-secondary" onclick="publicRouter('contact')">Demander une démo</button>
+                <button type="button" class="public-btn-primary" onclick="openPublicDemo()">Demander une démo</button>
+                <button type="button" class="public-btn-secondary" onclick="publicRouter('tarifs')">Voir les tarifs</button>
             </div>
         </div>
     </section>`;
@@ -742,7 +725,7 @@ function renderPublicModuleDetail(module) {
                 <p class="public-module-lead">${escapePublicHtml(module.lead)}</p>
                 <ul class="public-module-bullets">${bullets}</ul>
                 <div class="public-module-actions">
-                    <button type="button" class="public-btn-primary public-btn-primary--sm" onclick="publicRouterContactTrial()">Commencer l'essai gratuit</button>
+                    <button type="button" class="public-btn-primary public-btn-primary--sm" onclick="openPublicDemo()">Demander une démo</button>
                     <button type="button" class="public-pillar-link" onclick="publicRouter('contact')">Planifier une démo</button>
                 </div>
             </div>
@@ -751,109 +734,8 @@ function renderPublicModuleDetail(module) {
     </section>`;
 }
 
-/** Captures d'écran de l'application (données fictives) — galerie à onglets. */
-const PUBLIC_SCREENSHOTS = [
-    {
-        key: 'planning',
-        tab: 'Planning',
-        icon: 'fa-calendar-week',
-        title: 'Toute la semaine d’un coup d’œil',
-        text: 'Chaque ordre de transport avec son chauffeur, son trajet et son prix. Glissez un OT vers un autre jour pour le replanifier.',
-        src: 'assets/screens/planning.webp',
-        width: 2880, height: 1800,
-        alt: 'Planning hebdomadaire Flenova : ordres de transport répartis du lundi au vendredi avec chauffeur, trajet et prix'
-    },
-    {
-        key: 'affretement',
-        tab: 'Affrètement',
-        icon: 'fa-handshake',
-        title: 'Vos sous-traitants dans le même outil',
-        text: 'Confiez un transport à un affréteur en deux clics : prix d’achat, marge et confirmation d’affrètement suivis sans tableur.',
-        src: 'assets/screens/affretement.webp',
-        width: 2880, height: 940,
-        alt: 'Liste des transports affrétés Flenova : client, sous-traitant, trajet et statut'
-    },
-    {
-        key: 'factures',
-        tab: 'Facturation',
-        icon: 'fa-file-invoice-dollar',
-        title: 'Factures Factur-X, encaissements et relances',
-        text: 'Factures numérotées et conformes, statut de paiement, relances et export comptable : vous savez qui vous doit quoi.',
-        src: 'assets/screens/factures.webp',
-        width: 2880, height: 1400,
-        alt: 'Liste des factures Flenova : numéros, clients, montants TTC, statuts validée ou payée et relances'
-    }
-];
-
-function renderPublicScreenshots() {
-    const first = PUBLIC_SCREENSHOTS[0];
-    const tabs = PUBLIC_SCREENSHOTS.map((s, i) => `
-                <button type="button" role="tab" id="public-shot-tab-${s.key}" aria-controls="public-shot-panel"
-                    aria-selected="${i === 0}" tabindex="${i === 0 ? 0 : -1}"
-                    class="public-shots-tab${i === 0 ? ' is-active' : ''}" onclick="showPublicScreenshot('${s.key}')"
-                    onkeydown="publicScreenshotTabKey(event, ${i})">
-                    <i class="fa-solid ${s.icon}" aria-hidden="true"></i>${s.tab}
-                </button>`).join('');
-    return `
-        <section class="public-shots-section" aria-labelledby="public-shots-title">
-            <div class="public-section-inner">
-                <h2 id="public-shots-title" class="public-section-title">Flenova, en vrai</h2>
-                <p class="public-section-lead">Captures de l’application, avec les données d’une société de démonstration.</p>
-                <div class="public-shots-tabs" role="tablist" aria-label="Captures d’écran">${tabs}
-                </div>
-                <div id="public-shot-panel" role="tabpanel" aria-labelledby="public-shot-tab-${first.key}" class="public-shots-panel">
-                    <div class="public-shots-caption">
-                        <h3 id="public-shot-title">${first.title}</h3>
-                        <p id="public-shot-text">${first.text}</p>
-                    </div>
-                    <figure class="public-shots-frame">
-                        <div class="public-shots-frame-bar" aria-hidden="true"><span></span><span></span><span></span></div>
-                        <a id="public-shot-link" href="${first.src}" target="_blank" rel="noopener" title="Voir en taille réelle">
-                            <img id="public-shot-img" src="${first.src}" alt="${first.alt}" width="${first.width}" height="${first.height}" loading="lazy" decoding="async">
-                        </a>
-                    </figure>
-                </div>
-            </div>
-        </section>`;
-}
-
-window.showPublicScreenshot = function (key) {
-    const shot = PUBLIC_SCREENSHOTS.find((s) => s.key === key);
-    if (!shot) return;
-    PUBLIC_SCREENSHOTS.forEach((s) => {
-        const tab = document.getElementById(`public-shot-tab-${s.key}`);
-        if (!tab) return;
-        const active = s.key === key;
-        tab.classList.toggle('is-active', active);
-        tab.setAttribute('aria-selected', String(active));
-        tab.tabIndex = active ? 0 : -1;
-    });
-    const img = document.getElementById('public-shot-img');
-    if (img) {
-        img.src = shot.src;
-        img.alt = shot.alt;
-        img.width = shot.width;
-        img.height = shot.height;
-    }
-    document.getElementById('public-shot-link')?.setAttribute('href', shot.src);
-    const title = document.getElementById('public-shot-title');
-    if (title) title.textContent = shot.title;
-    const text = document.getElementById('public-shot-text');
-    if (text) text.textContent = shot.text;
-    document.getElementById('public-shot-panel')?.setAttribute('aria-labelledby', `public-shot-tab-${key}`);
-};
-
-/** Flèches gauche/droite entre les onglets (motif ARIA tablist). */
-window.publicScreenshotTabKey = function (event, index) {
-    if (event.key !== 'ArrowRight' && event.key !== 'ArrowLeft') return;
-    event.preventDefault();
-    const n = PUBLIC_SCREENSHOTS.length;
-    const next = PUBLIC_SCREENSHOTS[(index + (event.key === 'ArrowRight' ? 1 : n - 1)) % n];
-    showPublicScreenshot(next.key);
-    document.getElementById(`public-shot-tab-${next.key}`)?.focus();
-};
-
 function renderPublicHome() {
+    if (typeof renderPublicLandingHome === 'function') return renderPublicLandingHome();
     return `<div class="public-landing fade-in">
         <section class="public-hero">
             <div class="public-hero-bg-shape public-hero-bg-shape-1" aria-hidden="true"></div>
@@ -864,7 +746,7 @@ function renderPublicHome() {
                     <h1 class="public-hero-title">Le TMS pensé pour les transporteurs PME</h1>
                     <p class="public-hero-subtitle">Moins de ressaisie, plus de visibilité, plus de marge. Centralisez commandes, planning, mobile chauffeurs et facturation.</p>
                     <div class="public-hero-cta">
-                        <button type="button" class="public-btn-primary" onclick="publicRouterContactTrial()">Commencer l'essai gratuit</button>
+                        <button type="button" class="public-btn-primary" onclick="openPublicDemo()">Demander une démo</button>
                         <button type="button" class="public-btn-secondary" onclick="publicRouter('contact')">Demander une démo</button>
                     </div>
                     <p class="public-hero-note">À partir de <strong>129 €/mois HT</strong> · <strong>Sans engagement de durée</strong> · Essai Premium 30 jours à l’inscription</p>
@@ -875,8 +757,6 @@ function renderPublicHome() {
             </div>
         </section>
 
-        ${renderPublicScreenshots()}
-        ${renderPublicSocialProof()}
         ${renderPublicPainPoints()}
         ${renderPublicProductPillars()}
         ${renderPublicDifferentiators()}
@@ -1012,12 +892,21 @@ function applyPublicContactPrefill() {
     window.__publicContactPrefill = null;
 }
 
+/**
+ * Demandes d'essai et de démo : formulaire de contact en mode « démo »
+ * (qualification du besoin, rappel par un conseiller) au lieu de
+ * l'inscription directe. Le forfait consulté est transmis avec la demande.
+ */
 window.publicRouterContactTrial = function publicRouterContactTrial(planId) {
-    const plan = planId ? `?plan=${encodeURIComponent(planId)}` : '';
-    window.location.href = `register.html${plan}`;
+    if (typeof openPublicDemo === 'function') {
+        openPublicDemo(planId ? { plan: getPublicPlanName(planId) || planId } : {});
+        return;
+    }
+    publicRouter('contact');
 };
 
 function renderPublicContact() {
+    if (typeof renderPublicContactPage === 'function') return renderPublicContactPage();
     const isTrial = window.__publicContactPrefill?.isTrial;
     const lead = isTrial
         ? 'Demandez votre période d\'essai Premium : décrivez votre activité, nous vous répondons sous 24&nbsp;h.'
@@ -1165,13 +1054,16 @@ function setPublicSeo(route) {
 
 function publicRouter(route) {
     if (!PUBLIC_ROUTES.includes(route)) route = 'home';
+    // Préremplissage de démo (profil, forfait) : valable pour la page contact seulement.
+    if (route !== 'contact') window.__publicDemoPrefill = null;
     const container = document.getElementById('public-content');
     if (!container) return;
 
     setPublicSeo(route);
     window.location.hash = route;
     updatePublicNav(route);
-    document.getElementById('public-screen')?.classList.toggle('public-on-home', route === 'home');
+    // Pages avec leur propre pied de page (public-landing.js) : on masque l'ancien.
+    document.getElementById('public-screen')?.classList.toggle('public-on-home', ['home', 'fonctionnalites', 'contact'].includes(route));
     container.classList.toggle('public-scroll-visible', route === 'home' || route === 'fonctionnalites');
     container.scrollTop = 0;
     if (route !== 'home' && publicReviewsTimer) {
@@ -1182,10 +1074,12 @@ function publicRouter(route) {
     switch (route) {
         case 'contact':
             container.innerHTML = renderPublicContact();
-            applyPublicContactPrefill();
+            if (typeof initPublicLandingPage === 'function') initPublicLandingPage('contact');
+            else applyPublicContactPrefill();
             break;
         case 'fonctionnalites':
-            container.innerHTML = renderPublicFeatures();
+            container.innerHTML = typeof renderPublicFeaturesPage === 'function' ? renderPublicFeaturesPage() : renderPublicFeatures();
+            if (typeof initPublicLandingPage === 'function') initPublicLandingPage('fonctionnalites');
             break;
         case 'tarifs':
             container.innerHTML = '<div class="py-20 text-center text-gray-500"><i class="fa-solid fa-spinner fa-spin text-2xl"></i></div>';
@@ -1213,6 +1107,7 @@ function publicRouter(route) {
             break;
         default:
             container.innerHTML = renderPublicHome();
+            if (typeof initPublicLandingPage === 'function') initPublicLandingPage('home');
             loadPublicReviews();
             if (typeof hydratePublicPlansSection === 'function') hydratePublicPlansSection();
             break;
@@ -1295,7 +1190,7 @@ function initPublicSite() {
         const qs = new URLSearchParams(window.location.search);
         const trialPlan = qs.get('plan');
         if (qs.get('trial') === '1') {
-            window.__publicContactPrefill = buildTrialContactPrefill(trialPlan);
+            window.__publicDemoPrefill = { type: 'demo', plan: trialPlan ? (getPublicPlanName(trialPlan) || trialPlan) : undefined };
             publicRouter('contact');
             try {
                 history.replaceState(null, '', `${window.location.pathname}#contact`);
@@ -7276,15 +7171,17 @@ function renderSolutions() {
 }
 
 function renderContact() {
+    // Téléphone affiché seulement s'il est renseigné (js/legal-pages.js).
+    const supportPhone = (typeof FLENOVA_LEGAL !== 'undefined' && FLENOVA_LEGAL.phone) || '';
     return `<div class="max-w-2xl mx-auto bg-white rounded-xl shadow-sm border border-gray-100 p-8 fade-in">
         <h2 class="text-2xl font-bold text-gray-800 mb-6">Contact & Aide</h2>
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-            <div class="text-center p-6 bg-blue-50 rounded-lg">
+        <div class="grid grid-cols-1 ${supportPhone ? 'md:grid-cols-2 ' : ''}gap-6 mb-8">
+            ${supportPhone ? `<div class="text-center p-6 bg-blue-50 rounded-lg">
                 <i class="fa-solid fa-phone text-3xl text-blue-600 mb-3"></i>
                 <h4 class="font-bold text-gray-800">Téléphone</h4>
-                <p class="text-gray-600">02 99 00 00 00</p>
+                <p class="text-gray-600"><a href="tel:${supportPhone.replace(/\s+/g, '')}">${escapeHtml(supportPhone)}</a></p>
                 <p class="text-sm text-gray-500">Lun-Ven: 9h-18h</p>
-            </div>
+            </div>` : ''}
             <div class="text-center p-6 bg-blue-50 rounded-lg">
                 <i class="fa-solid fa-envelope text-3xl text-blue-600 mb-3"></i>
                 <h4 class="font-bold text-gray-800">Email</h4>
@@ -7328,8 +7225,8 @@ function renderAbout() {
             
             <h3 class="text-xl font-bold text-gray-800">Informations Légales</h3>
             <div class="bg-gray-50 p-4 rounded-lg text-sm">
-                <p><strong>Entreprise :</strong> ${typeof FLENOVA_LEGAL !== 'undefined' ? FLENOVA_LEGAL.company : 'Flenova SAS'}</p>
-                <p><strong>SIRET :</strong> ${typeof FLENOVA_LEGAL !== 'undefined' ? FLENOVA_LEGAL.siret : '—'}</p>
+                <p><strong>Entreprise :</strong> ${typeof FLENOVA_LEGAL !== 'undefined' ? FLENOVA_LEGAL.company : 'Yangue Technologies SASU'}</p>
+                <p><strong>RCS :</strong> ${typeof FLENOVA_LEGAL !== 'undefined' ? FLENOVA_LEGAL.rcs : '—'}</p>
                 <p><strong>TVA :</strong> ${typeof FLENOVA_LEGAL !== 'undefined' ? FLENOVA_LEGAL.tva : '—'}</p>
                 <p><strong>Adresse :</strong> ${typeof FLENOVA_LEGAL !== 'undefined' ? FLENOVA_LEGAL.address : '—'}</p>
                 <p class="mt-3"><strong>Données personnelles :</strong> <a href="#" onclick="router('privacy'); return false;" class="text-blue-600 hover:underline">Mes données</a></p>

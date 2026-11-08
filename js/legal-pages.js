@@ -2,14 +2,27 @@
  * Pages légales RGPD — contenu, liens footer, droits des personnes
  */
 const FLENOVA_LEGAL = {
-    company: 'Flenova SAS',
-    address: 'Siège social : à compléter lors de l\'immatriculation',
-    siret: 'En cours d\'attribution',
+    // Éditeur — extrait Kbis du 27/10/2026 (RCS Nantes).
+    brand: 'Flenova',
+    company: 'Yangue Technologies SASU',
+    legalForm: 'Société par actions simplifiée unipersonnelle (SASU)',
+    capital: '1 000 €',
+    address: '10 le Mortier la Hervotière, 44810 La Chevallerais, France',
+    siren: '131 878 233',
+    rcs: 'RCS Nantes 131 878 233',
+    euid: 'FR4401.131878233',
+    naf: '6201Z — Programmation informatique',
+    // SIRET complet (SIREN + NIC) et TVA : non mentionnés sur le Kbis,
+    // à renseigner dès réception (avis de situation INSEE, impots.gouv).
+    siret: 'SIREN 131 878 233',
     tva: 'En cours d\'attribution',
+    director: 'Yangue Kesse Issa, Président',
     email: 'support@flenova.fr',
+    // Téléphone affiché sur le site (contact, pied de page) dès qu'il est renseigné.
+    phone: '',
     dpo: 'support@flenova.fr',
-    host: 'Hébergeur à documenter dans le registre des traitements',
-    updatedAt: '8 octobre 2026'
+    host: 'Hostinger International Ltd — 61 Lordou Vironos Street, 6023 Larnaca, Chypre — www.hostinger.fr',
+    updatedAt: '8 novembre 2026'
 };
 
 function legalEsc(value) {
@@ -53,7 +66,7 @@ function getPrivacyPolicyHtml() {
         <p>La présente politique informe les utilisateurs de la plateforme <strong>Flenova</strong> (TMS transport) sur la manière dont leurs données personnelles sont traitées, conformément au Règlement (UE) 2016/679 (RGPD).</p>
 
         <h2 class="text-lg font-bold text-gray-800 mt-6">1. Responsable du traitement</h2>
-        <p><strong>${legalEsc(L.company)}</strong><br>${legalEsc(L.address)}<br>Contact : <a href="mailto:${legalEsc(L.email)}" class="text-blue-600 hover:underline">${legalEsc(L.email)}</a><br>DPO / contact données : <a href="mailto:${legalEsc(L.dpo)}" class="text-blue-600 hover:underline">${legalEsc(L.dpo)}</a></p>
+        <p><strong>${legalEsc(L.company)}</strong> (${legalEsc(L.rcs)})<br>${legalEsc(L.address)}<br>Contact : <a href="mailto:${legalEsc(L.email)}" class="text-blue-600 hover:underline">${legalEsc(L.email)}</a><br>DPO / contact données : <a href="mailto:${legalEsc(L.dpo)}" class="text-blue-600 hover:underline">${legalEsc(L.dpo)}</a></p>
 
         <h2 class="text-lg font-bold text-gray-800 mt-6">2. Données collectées</h2>
         <ul class="list-disc pl-5 space-y-1">
@@ -102,10 +115,17 @@ function getLegalMentionsHtml() {
     const L = FLENOVA_LEGAL;
     return `
         <h2 class="text-lg font-bold text-gray-800">Éditeur du site</h2>
-        <p><strong>${legalEsc(L.company)}</strong><br>${legalEsc(L.address)}<br>SIRET : ${legalEsc(L.siret)}<br>TVA : ${legalEsc(L.tva)}<br>Email : ${legalEsc(L.email)}</p>
+        <p>Le service ${legalEsc(L.brand)} est édité par :</p>
+        <p><strong>${legalEsc(L.company)}</strong><br>
+            ${legalEsc(L.legalForm)} au capital de ${legalEsc(L.capital)}<br>
+            Siège social : ${legalEsc(L.address)}<br>
+            ${legalEsc(L.rcs)} — EUID ${legalEsc(L.euid)}<br>
+            Code NAF : ${legalEsc(L.naf)}<br>
+            TVA intracommunautaire : ${legalEsc(L.tva)}<br>
+            E-mail : <a href="mailto:${legalEsc(L.email)}" class="text-blue-600 hover:underline">${legalEsc(L.email)}</a></p>
 
         <h2 class="text-lg font-bold text-gray-800 mt-6">Directeur de la publication</h2>
-        <p>Le représentant légal de ${legalEsc(L.company)}.</p>
+        <p>${legalEsc(L.director)}.</p>
 
         <h2 class="text-lg font-bold text-gray-800 mt-6">Hébergement</h2>
         <p>${legalEsc(L.host)}</p>

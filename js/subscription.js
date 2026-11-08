@@ -186,7 +186,7 @@ function renderPricingCards(options = {}) {
 
         let buttonHtml;
         if (mode === 'public') {
-            buttonHtml = `<button type="button" onclick="publicRouterContactTrial('${plan.id}')" class="block w-full py-2.5 text-center ${plan.popular ? 'bg-blue-600 text-white hover:bg-blue-700' : 'border border-blue-600 text-blue-600 hover:bg-blue-50'} rounded-lg font-semibold transition">Commencer l'essai</button>`;
+            buttonHtml = `<button type="button" onclick="publicRouterContactTrial('${plan.id}')" class="block w-full py-2.5 text-center ${plan.popular ? 'bg-blue-600 text-white hover:bg-blue-700' : 'border border-blue-600 text-blue-600 hover:bg-blue-50'} rounded-lg font-semibold transition">Demander une démo</button>`;
         } else if (selectedPlan === plan.id) {
             buttonHtml = `<div class="w-full py-2.5 text-center bg-green-50 border border-green-200 text-green-800 rounded-lg font-semibold">Votre forfait actuel</div>`;
         } else if (mode === 'app' && window.cachedSubscription?.needsPayment) {
