@@ -645,6 +645,10 @@
         });
     }
 
+    // Appelée après chaque rafraîchissement des données (fetchAllData) :
+    // la progression suit les créations sans attendre un rechargement.
+    window.renderOnboardingChecklist = renderOnboardingChecklist;
+
     // ── Densité UI ──────────────────────────────────────────────────
     window.applyUiDensity = function (mode) {
         const m = mode === 'compact' ? 'compact' : 'comfortable';

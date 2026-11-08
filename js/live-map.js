@@ -47,11 +47,14 @@
                 link.setAttribute('data-maplibre', '1');
                 document.head.appendChild(link);
             }
-            const script = document.createElement('script');
-            script.src = '/assets/vendor/maplibre-gl/maplibre-gl.js';
-            script.onload = () => resolve();
-            script.onerror = () => reject(new Error('Impossible de charger MapLibre'));
-            document.head.appendChild(script);
+            // MapLibre 6 n'existe qu'en module ES : chargé à la demande puis
+            // exposé sous l'ancien global pour le reste du fichier.
+            import('/assets/vendor/maplibre-gl/maplibre-gl.mjs')
+                .then((mod) => {
+                    global.maplibregl = mod.default && mod.default.Map ? mod.default : mod;
+                    resolve();
+                })
+                .catch(() => reject(new Error('Impossible de charger MapLibre')));
         });
         return mapLibreReady;
     }

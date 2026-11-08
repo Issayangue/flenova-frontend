@@ -407,19 +407,49 @@
         return readJson(companyKey(WEEKLY_PREF_KEY), { enabled: false, email: '' });
     };
 
+    function weeklyReportSummaryText(pref) {
+        return pref.enabled
+            ? `E-mail automatique chaque lundi${pref.email ? ` → ${pref.email}` : ''}`
+            : 'E-mail automatique désactivé';
+    }
+
+    /** Réglages repliés (résumé + « Modifier ») ou dépliés (formulaire). */
+    window.toggleWeeklyReportSettings = function (open) {
+        const settings = document.getElementById('weekly-report-settings');
+        const summary = document.getElementById('weekly-report-summary');
+        if (!settings || !summary) return;
+        settings.classList.toggle('hidden', !open);
+        summary.classList.toggle('hidden', open);
+        if (open) document.getElementById('weekly-report-email')?.focus();
+    };
+
     window.saveWeeklyReportPref = async function () {
         const enabled = document.getElementById('weekly-report-enabled')?.checked;
-        const email = document.getElementById('weekly-report-email')?.value?.trim() || '';
+        const emailInput = document.getElementById('weekly-report-email');
+        const email = emailInput?.value?.trim() || '';
+        if (enabled && (!email || (emailInput && !emailInput.checkValidity()))) {
+            showToast('Indiquez une adresse e-mail valide pour l’envoi automatique', 'error');
+            emailInput?.focus();
+            return;
+        }
         const pref = { enabled: Boolean(enabled), email, updatedAt: new Date().toISOString() };
-        writeJson(companyKey(WEEKLY_PREF_KEY), pref);
 
         try {
-            await apiFetch('reports/weekly-prefs', {
-                method: 'PUT',
-                body: pref
-            });
-        } catch { /* backend optionnel */ }
+            const res = await apiFetch('reports/weekly-prefs', { method: 'PUT', body: pref });
+            if (!res.ok) {
+                const err = await res.json().catch(() => ({}));
+                showToast(err.error || err.message || 'Réglage non enregistré', 'error');
+                return;
+            }
+        } catch {
+            showToast('Serveur injoignable — réglage non enregistré', 'error');
+            return;
+        }
+        writeJson(companyKey(WEEKLY_PREF_KEY), pref);
 
+        const summaryText = document.getElementById('weekly-report-summary-text');
+        if (summaryText) summaryText.textContent = weeklyReportSummaryText(pref);
+        toggleWeeklyReportSettings(false);
         showToast(
             pref.enabled
                 ? `Envoi hebdo activé${pref.email ? ` → ${pref.email}` : ''}`
@@ -461,6 +491,8 @@
         const pref = getWeeklyReportPref();
         const kpi = computeWeeklyKpis();
         const user = typeof getCurrentUser === 'function' ? getCurrentUser() : null;
+        // Déjà enregistré une fois : réglages repliés, seul le résumé s'affiche.
+        const saved = Boolean(pref.updatedAt);
         return `
             <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-4 mb-4" id="weekly-report-panel">
                 <div class="flex flex-wrap justify-between gap-3 items-start">
@@ -477,7 +509,13 @@
                         </button>
                     </div>
                 </div>
-                <div class="mt-3 flex flex-wrap items-end gap-3 border-t pt-3">
+                <div id="weekly-report-summary" class="${saved ? '' : 'hidden '}mt-3 flex flex-wrap items-center justify-between gap-2 border-t pt-3 text-xs text-gray-600">
+                    <span><i class="fa-solid fa-envelope-circle-check text-indigo-500 mr-1"></i><span id="weekly-report-summary-text">${esc(weeklyReportSummaryText(pref))}</span></span>
+                    <button type="button" onclick="toggleWeeklyReportSettings(true)" class="font-semibold text-indigo-700 hover:underline">
+                        <i class="fa-solid fa-pen mr-1"></i>Modifier
+                    </button>
+                </div>
+                <div id="weekly-report-settings" class="${saved ? 'hidden ' : ''}mt-3 flex flex-wrap items-end gap-3 border-t pt-3">
                     <label class="flex items-center gap-2 text-xs text-gray-700">
                         <input type="checkbox" id="weekly-report-enabled" ${pref.enabled ? 'checked' : ''}>
                         E-mail automatique chaque lundi

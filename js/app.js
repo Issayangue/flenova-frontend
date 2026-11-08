@@ -751,6 +751,108 @@ function renderPublicModuleDetail(module) {
     </section>`;
 }
 
+/** Captures d'écran de l'application (données fictives) — galerie à onglets. */
+const PUBLIC_SCREENSHOTS = [
+    {
+        key: 'planning',
+        tab: 'Planning',
+        icon: 'fa-calendar-week',
+        title: 'Toute la semaine d’un coup d’œil',
+        text: 'Chaque ordre de transport avec son chauffeur, son trajet et son prix. Glissez un OT vers un autre jour pour le replanifier.',
+        src: 'assets/screens/planning.webp',
+        width: 2880, height: 1800,
+        alt: 'Planning hebdomadaire Flenova : ordres de transport répartis du lundi au vendredi avec chauffeur, trajet et prix'
+    },
+    {
+        key: 'affretement',
+        tab: 'Affrètement',
+        icon: 'fa-handshake',
+        title: 'Vos sous-traitants dans le même outil',
+        text: 'Confiez un transport à un affréteur en deux clics : prix d’achat, marge et confirmation d’affrètement suivis sans tableur.',
+        src: 'assets/screens/affretement.webp',
+        width: 2880, height: 940,
+        alt: 'Liste des transports affrétés Flenova : client, sous-traitant, trajet et statut'
+    },
+    {
+        key: 'factures',
+        tab: 'Facturation',
+        icon: 'fa-file-invoice-dollar',
+        title: 'Factures Factur-X, encaissements et relances',
+        text: 'Factures numérotées et conformes, statut de paiement, relances et export comptable : vous savez qui vous doit quoi.',
+        src: 'assets/screens/factures.webp',
+        width: 2880, height: 1400,
+        alt: 'Liste des factures Flenova : numéros, clients, montants TTC, statuts validée ou payée et relances'
+    }
+];
+
+function renderPublicScreenshots() {
+    const first = PUBLIC_SCREENSHOTS[0];
+    const tabs = PUBLIC_SCREENSHOTS.map((s, i) => `
+                <button type="button" role="tab" id="public-shot-tab-${s.key}" aria-controls="public-shot-panel"
+                    aria-selected="${i === 0}" tabindex="${i === 0 ? 0 : -1}"
+                    class="public-shots-tab${i === 0 ? ' is-active' : ''}" onclick="showPublicScreenshot('${s.key}')"
+                    onkeydown="publicScreenshotTabKey(event, ${i})">
+                    <i class="fa-solid ${s.icon}" aria-hidden="true"></i>${s.tab}
+                </button>`).join('');
+    return `
+        <section class="public-shots-section" aria-labelledby="public-shots-title">
+            <div class="public-section-inner">
+                <h2 id="public-shots-title" class="public-section-title">Flenova, en vrai</h2>
+                <p class="public-section-lead">Captures de l’application, avec les données d’une société de démonstration.</p>
+                <div class="public-shots-tabs" role="tablist" aria-label="Captures d’écran">${tabs}
+                </div>
+                <div id="public-shot-panel" role="tabpanel" aria-labelledby="public-shot-tab-${first.key}" class="public-shots-panel">
+                    <div class="public-shots-caption">
+                        <h3 id="public-shot-title">${first.title}</h3>
+                        <p id="public-shot-text">${first.text}</p>
+                    </div>
+                    <figure class="public-shots-frame">
+                        <div class="public-shots-frame-bar" aria-hidden="true"><span></span><span></span><span></span></div>
+                        <a id="public-shot-link" href="${first.src}" target="_blank" rel="noopener" title="Voir en taille réelle">
+                            <img id="public-shot-img" src="${first.src}" alt="${first.alt}" width="${first.width}" height="${first.height}" loading="lazy" decoding="async">
+                        </a>
+                    </figure>
+                </div>
+            </div>
+        </section>`;
+}
+
+window.showPublicScreenshot = function (key) {
+    const shot = PUBLIC_SCREENSHOTS.find((s) => s.key === key);
+    if (!shot) return;
+    PUBLIC_SCREENSHOTS.forEach((s) => {
+        const tab = document.getElementById(`public-shot-tab-${s.key}`);
+        if (!tab) return;
+        const active = s.key === key;
+        tab.classList.toggle('is-active', active);
+        tab.setAttribute('aria-selected', String(active));
+        tab.tabIndex = active ? 0 : -1;
+    });
+    const img = document.getElementById('public-shot-img');
+    if (img) {
+        img.src = shot.src;
+        img.alt = shot.alt;
+        img.width = shot.width;
+        img.height = shot.height;
+    }
+    document.getElementById('public-shot-link')?.setAttribute('href', shot.src);
+    const title = document.getElementById('public-shot-title');
+    if (title) title.textContent = shot.title;
+    const text = document.getElementById('public-shot-text');
+    if (text) text.textContent = shot.text;
+    document.getElementById('public-shot-panel')?.setAttribute('aria-labelledby', `public-shot-tab-${key}`);
+};
+
+/** Flèches gauche/droite entre les onglets (motif ARIA tablist). */
+window.publicScreenshotTabKey = function (event, index) {
+    if (event.key !== 'ArrowRight' && event.key !== 'ArrowLeft') return;
+    event.preventDefault();
+    const n = PUBLIC_SCREENSHOTS.length;
+    const next = PUBLIC_SCREENSHOTS[(index + (event.key === 'ArrowRight' ? 1 : n - 1)) % n];
+    showPublicScreenshot(next.key);
+    document.getElementById(`public-shot-tab-${next.key}`)?.focus();
+};
+
 function renderPublicHome() {
     return `<div class="public-landing fade-in">
         <section class="public-hero">
@@ -773,6 +875,7 @@ function renderPublicHome() {
             </div>
         </section>
 
+        ${renderPublicScreenshots()}
         ${renderPublicSocialProof()}
         ${renderPublicPainPoints()}
         ${renderPublicProductPillars()}
@@ -1877,7 +1980,12 @@ window.changePlanningWeek = function (offset) {
     router('planning');
 };
 
-async function fetchAllData() {
+/**
+ * Charge (ou recharge) les données du TMS.
+ * @param {{ only?: string[] }} [options] only : rafraîchir seulement certaines
+ *   listes (ex. ['clients'] après l'enregistrement d'un client).
+ */
+async function fetchAllData(options = {}) {
     try {
         let sawPaymentRequired = false;
         const markPaymentRequired = () => {
@@ -1905,9 +2013,9 @@ async function fetchAllData() {
             const resourceKey = url.split('/')[0].replace('-', '_');
             return (data[resourceKey] && Array.isArray(data[resourceKey])) ? data[resourceKey] : [];
         };
-        const fetchAllPaginated = async (url, pageSize = 500) => {
-            const all = [];
-            let offset = 0;
+        const fetchAllPaginated = async (url, pageSize = 500, startOffset = 0, initial = []) => {
+            const all = [...initial];
+            let offset = startOffset;
             while (true) {
                 const sep = url.includes('?') ? '&' : '?';
                 const res = await apiFetch(`${url}${sep}limit=${pageSize}&offset=${offset}`);
@@ -1926,30 +2034,84 @@ async function fetchAllData() {
         };
         const mayView = (module) => (typeof can !== 'function') || can(module, 'view');
 
-        const [orders, clients, missions, drivers, vehicles, users, sales, purchase, subcontractors, agencies] = await Promise.all([
-            mayView('transports') ? fetchAllPaginated('transport-orders') : Promise.resolve([]),
-            mayView('clients') ? fetchJson('clients') : Promise.resolve([]),
-            mayView('transports') ? fetchJson('missions') : Promise.resolve([]),
-            mayView('carriers') ? fetchJson('drivers') : Promise.resolve([]),
-            mayView('carriers') ? fetchJson('vehicles') : Promise.resolve([]),
-            (typeof canManageUsers === 'function' && canManageUsers()) ? fetchJson('users') : Promise.resolve([]),
-            mayView('billing') ? fetchJson('sales-invoices') : Promise.resolve([]),
-            mayView('billing') ? fetchJson('purchase-invoices') : Promise.resolve([]),
-            mayView('carriers') ? fetchJson('subcontractors') : Promise.resolve([]),
-            (typeof canManageUsers === 'function' && canManageUsers()) ? fetchJson('agencies') : Promise.resolve([])
-        ]);
+        const canUsers = typeof canManageUsers === 'function' && canManageUsers();
+        // Listes visibles pour ce rôle (les autres restent vides).
+        const wanted = {
+            orders: mayView('transports'),
+            clients: mayView('clients'),
+            missions: mayView('transports'),
+            drivers: mayView('carriers'),
+            vehicles: mayView('carriers'),
+            users: canUsers,
+            sales_invoices: mayView('billing'),
+            purchase_invoices: mayView('billing'),
+            subcontractors: mayView('carriers'),
+            agencies: canUsers
+        };
+        const only = Array.isArray(options.only) && options.only.length ? new Set(options.only) : null;
+        const keys = Object.keys(wanted).filter((k) => wanted[k] && (!only || only.has(k)));
+        const extract = (body) => {
+            if (Array.isArray(body)) return body;
+            if (body && Array.isArray(body.data)) return body.data;
+            return [];
+        };
+
+        const loaded = {};
+        // Une seule requête pour toutes les listes (GET /api/bootstrap).
+        const boot = keys.length ? await apiFetch(`bootstrap?include=${keys.join(',')}`) : null;
+        if (boot && boot.ok) {
+            const { parts = {} } = await boot.json();
+            for (const key of keys) {
+                const part = parts[key];
+                if (part?.status === 402) {
+                    markPaymentRequired();
+                    loaded[key] = [];
+                } else {
+                    loaded[key] = part && part.status === 200 ? extract(part.body) : [];
+                }
+            }
+            // Plus de 500 OT : pages suivantes chargées comme avant.
+            if (parts.orders?.status === 200 && parts.orders.body?.hasMore) {
+                loaded.orders = await fetchAllPaginated('transport-orders', 500, 500, loaded.orders);
+            }
+        } else if (boot && boot.status === 402) {
+            markPaymentRequired();
+        } else if (keys.length) {
+            // Backend antérieur à /bootstrap : une requête par liste.
+            const legacyUrls = {
+                orders: null, clients: 'clients', missions: 'missions', drivers: 'drivers', vehicles: 'vehicles',
+                users: 'users', sales_invoices: 'sales-invoices', purchase_invoices: 'purchase-invoices',
+                subcontractors: 'subcontractors', agencies: 'agencies'
+            };
+            const values = await Promise.all(keys.map((k) => (k === 'orders'
+                ? fetchAllPaginated('transport-orders')
+                : fetchJson(legacyUrls[k]))));
+            keys.forEach((k, i) => { loaded[k] = values[i]; });
+        }
         if (sawPaymentRequired) {
             if (typeof refreshNotificationBadge === 'function') refreshNotificationBadge();
             return false;
         }
-        db = { orders, clients, missions, drivers, vehicles, users, sales_invoices: sales, purchase_invoices: purchase, subcontractors, agencies: agencies || [] };
+        const previous = (typeof db === 'object' && db) ? db : {};
+        const pick = (k) => (only && !only.has(k) ? (previous[k] || []) : (loaded[k] || []));
+        db = {
+            orders: pick('orders'),
+            clients: pick('clients'),
+            missions: pick('missions'),
+            drivers: pick('drivers'),
+            vehicles: pick('vehicles'),
+            users: pick('users'),
+            sales_invoices: pick('sales_invoices'),
+            purchase_invoices: pick('purchase_invoices'),
+            subcontractors: pick('subcontractors'),
+            agencies: pick('agencies')
+        };
         if (typeof refreshNotificationBadge === 'function') refreshNotificationBadge();
-        if (typeof renderOnboardingChecklist === 'function') {
-            /* checklist auto-refresh via initUxImprovements patterns */
-            const mount = document.getElementById('onboarding-checklist-mount');
-            if (mount && !mount.classList.contains('hidden') && typeof initUxImprovements === 'function') {
-                initUxImprovements();
-            }
+        // La liste « Démarrage rapide » déduit sa progression de db : elle est
+        // redessinée à chaque rafraîchissement (auparavant, la fonction testée
+        // était privée au module et la liste restait figée).
+        if (typeof window.renderOnboardingChecklist === 'function') {
+            window.renderOnboardingChecklist();
         }
         return !sawPaymentRequired;
     } catch (error) {
@@ -3818,7 +3980,7 @@ function renderMarginDashboard() {
         <div class="overflow-x-auto">
             <table class="w-full text-sm text-left text-gray-500">
                 <thead class="text-xs text-gray-700 uppercase bg-gray-50 border-b">
-                    <tr><th class="px-4 py-3">Sous-traitant</th><th class="px-4 py-3">NB Orders</th><th class="px-4 py-3">Prix Vente</th><th class="px-4 py-3">Prix Achat</th><th class="px-4 py-3">Marge €</th><th class="px-4 py-3">Marge %</th><th class="px-4 py-3">Actions</th></tr>
+                    <tr><th class="px-4 py-3">Sous-traitant</th><th class="px-4 py-3">NB Orders</th><th class="px-4 py-3">Prix vente HT</th><th class="px-4 py-3">Prix achat HT</th><th class="px-4 py-3">Marge € HT</th><th class="px-4 py-3">Marge %</th><th class="px-4 py-3">Actions</th></tr>
                 </thead>
                 <tbody id="margin-by-subcontractor">
                     <tr><td colspan="7" class="px-4 py-8 text-center text-gray-400">Chargement...</td></tr>
@@ -6492,7 +6654,7 @@ function renderAdmin(bankSettings = null) {
                             </div>
                             <div>
                                 <label class="block text-[10px] font-bold text-gray-400 uppercase mb-1">SIRET / SIREN</label>
-                                <input type="text" id="admin-company-siret" class="w-full border p-2 rounded text-sm font-mono" value="${currentUser?.company_siret || ''}" placeholder="123 456 789 00012">
+                                <input type="text" id="admin-company-siret" maxlength="14" inputmode="numeric" pattern="[0-9]{9}([0-9]{5})?" autocomplete="off" oninput="this.value=this.value.replace(/\\D/g,'').slice(0,14)" title="SIREN (9 chiffres) ou SIRET (14 chiffres), sans espace" class="w-full border p-2 rounded text-sm font-mono" value="${String(currentUser?.company_siret || '').replace(/\D/g, '')}" placeholder="55210055400013">
                             </div>
                         </div>
                         <button type="submit" class="w-full py-2 bg-blue-600 text-white rounded text-sm font-bold hover:bg-blue-700 transition shadow-sm">
@@ -6584,7 +6746,7 @@ window.updateCompanyInfo = async function () {
     const payload = {
         address: document.getElementById('admin-company-address').value,
         tva_intra: document.getElementById('admin-company-tva').value,
-        siret: document.getElementById('admin-company-siret').value
+        siret: document.getElementById('admin-company-siret').value.replace(/\D/g, '')
     };
 
     try {
@@ -6594,10 +6756,11 @@ window.updateCompanyInfo = async function () {
         });
 
         if (response.ok) {
+            const saved = (await response.json().catch(() => ({}))).company || {};
             Object.assign(currentUser, {
-                company_address: payload.address,
-                company_tva: payload.tva_intra,
-                company_siret: payload.siret
+                company_address: saved.address ?? payload.address,
+                company_tva: saved.tva_intra ?? payload.tva_intra,
+                company_siret: saved.siret ?? payload.siret
             });
             setCurrentUser(currentUser);
             if (typeof updateAppCompanyHeader === 'function') updateAppCompanyHeader(currentUser);
@@ -7406,7 +7569,7 @@ function renderQuotationCalculator() {
                 </div>
                 
                 <div class="mt-12 text-center">
-                    <div class="text-indigo-300 text-sm mb-2">Prix de transport Total</div>
+                    <div class="text-indigo-300 text-sm mb-2">Prix de transport total HT</div>
                     <div class="text-5xl font-black" id="res-total">0.00 €</div>
                 </div>
                 
@@ -7862,8 +8025,13 @@ async function router(route) {
     }
 
     if (route === 'dashboard' && typeof renderWeeklyReportPanel === 'function') {
+        // Pilotage hebdo : onglet « Général » uniquement (pas de répétition
+        // dans Cotations, Facturation, Palettes Europe). Onglet lu dans le DOM :
+        // il tient compte du repli sur Général si l'offre n'a pas les palettes.
+        const selectedTab = document.querySelector('[role="tab"][aria-selected="true"][id^="dash-tab-"]')?.id;
+        const onGeneralTab = !selectedTab || selectedTab === 'dash-tab-general';
         const mount = document.getElementById('dash-tabpanel') || appContent;
-        if (mount && !document.getElementById('weekly-report-panel')) {
+        if (onGeneralTab && mount && !document.getElementById('weekly-report-panel')) {
             mount.insertAdjacentHTML('afterbegin', renderWeeklyReportPanel());
         }
     }
@@ -8493,8 +8661,28 @@ function openAddClientModal() {
     if (termsEl) termsEl.value = 'net_30';
     document.getElementById('add-client-tva').value = '';
     document.getElementById('add-client-contact-name').value = '';
+    const countryNew = document.getElementById('add-client-country');
+    if (countryNew) countryNew.value = 'FR';
+    updateClientSiretHint();
     fillClientContactTypeSelect('Exploitant');
 }
+
+/**
+ * Le SIREN n'est exigé (mention légale sur facture) que pour un client
+ * français ; un client étranger est identifié par son n° de TVA.
+ */
+function updateClientSiretHint() {
+    const country = (document.getElementById('add-client-country')?.value || 'FR').toUpperCase();
+    const french = country === 'FR';
+    document.getElementById('add-client-siret-optional')?.classList.toggle('hidden', french);
+    const hint = document.getElementById('add-client-siret-hint');
+    if (hint) {
+        hint.textContent = french
+            ? 'Obligatoire pour facturer un client français (mention légale). 9 ou 14 chiffres, sans espace.'
+            : 'Facultatif pour un client étranger : renseignez plutôt son n° de TVA intracommunautaire.';
+    }
+}
+window.updateClientSiretHint = updateClientSiretHint;
 
 function openEditClientModal(clientId) {
     if (typeof canManageClients === 'function' && !canManageClients()) return;
@@ -8516,6 +8704,16 @@ function openEditClientModal(clientId) {
     if (termsEdit) termsEdit.value = client.payment_terms || 'net_30';
     document.getElementById('add-client-tva').value = client.tva || '';
     document.getElementById('add-client-contact-name').value = client.contact_name || '';
+    const countryEdit = document.getElementById('add-client-country');
+    if (countryEdit) {
+        const code = String(client.country || 'FR').toUpperCase();
+        // Pays absent de la liste (saisi via l'API) : ajouté pour ne pas le perdre.
+        if (![...countryEdit.options].some((o) => o.value === code)) {
+            countryEdit.add(new Option(code, code));
+        }
+        countryEdit.value = code;
+    }
+    updateClientSiretHint();
     fillClientContactTypeSelect(client.contact_type);
 
     document.getElementById('add-client-modal').classList.remove('hidden');
@@ -8537,6 +8735,7 @@ async function submitAddClient() {
         billing_address: document.getElementById('add-client-billing-address')?.value || '',
         payment_terms: document.getElementById('add-client-payment-terms')?.value || 'net_30',
         tva: document.getElementById('add-client-tva').value,
+        country: document.getElementById('add-client-country')?.value || 'FR',
         contact_name: document.getElementById('add-client-contact-name').value,
         contact_type: normalizeClientContactType(document.getElementById('add-client-contact-type')?.value)
     };
@@ -8554,7 +8753,7 @@ async function submitAddClient() {
 
         if (response.ok) {
             showToast(editId ? 'Client mis à jour avec succès' : 'Client ajouté avec succès', 'success');
-            await fetchAllData();
+            await fetchAllData({ only: ['clients'] });
             closeAddClientModal();
             router('clients');
         } else {
@@ -11391,7 +11590,9 @@ async function submitAddOrder() {
         agency_id: agencyVal ? parseInt(agencyVal, 10) : null,
         volume: Number.isFinite(volumeVal) ? volumeVal : null,
         price: parseFloat(document.getElementById('add-order-price').value) || 0,
-        status: assignment.driver_id ? 'Pris en charge' : 'Brouillon',
+        // Statut initial « Brouillon » : avec un chauffeur, le backend le passe
+        // lui-même en « Pris en charge » (machine à états).
+        status: 'Brouillon',
         ...assignment,
         ...pallet,
         ...cmr

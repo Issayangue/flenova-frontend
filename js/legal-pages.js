@@ -9,7 +9,7 @@ const FLENOVA_LEGAL = {
     email: 'support@flenova.fr',
     dpo: 'support@flenova.fr',
     host: 'Hébergeur à documenter dans le registre des traitements',
-    updatedAt: '28 juillet 2026'
+    updatedAt: '8 octobre 2026'
 };
 
 function legalEsc(value) {
@@ -74,7 +74,7 @@ function getPrivacyPolicyHtml() {
         </ul>
 
         <h2 class="text-lg font-bold text-gray-800 mt-6">4. Destinataires et sous-traitants</h2>
-        <p>Les données peuvent être traitées par des prestataires agissant pour notre compte : hébergeur, GoCardless (prélèvement SEPA), service email (SMTP), TomTom / Google Maps (cartographie et distances), prestataires CDN pour les ressources statiques. Des contrats de sous-traitance (DPA) doivent être signés avec chaque prestataire.</p>
+        <p>Les données peuvent être traitées par des prestataires agissant pour notre compte : hébergeur, GoCardless (prélèvement SEPA), service email (SMTP), TomTom / Google Maps (cartographie et distances), OpenFreeMap (fonds de carte), Cloudflare Turnstile (protection anti-robots à l'inscription et à la connexion). Les polices, icônes et bibliothèques de l'interface sont hébergées par Flenova : aucun CDN tiers n'est sollicité. Des contrats de sous-traitance (DPA) doivent être signés avec chaque prestataire.</p>
 
         <h2 class="text-lg font-bold text-gray-800 mt-6">5. Durées de conservation</h2>
         <ul class="list-disc pl-5 space-y-1">
@@ -211,8 +211,11 @@ function getCookiesPolicyHtml() {
         <h2 class="text-lg font-bold text-gray-800">Cookies strictement nécessaires</h2>
         <p>Flenova utilise un cookie de session (<code>accessToken</code>, durée 24 h, httpOnly) indispensable à l'authentification. Il ne nécessite pas de consentement préalable (exemption CNIL — cookie technique).</p>
 
-        <h2 class="text-lg font-bold text-gray-800 mt-6">Ressources tierces</h2>
-        <p>Des bibliothèques peuvent être chargées depuis des CDN (polices, icônes, graphiques). Selon la configuration, ces services peuvent déposer des traceurs : consultez leurs politiques respectives. Aucun cookie publicitaire Flenova n'est déposé par défaut.</p>
+        <h2 class="text-lg font-bold text-gray-800 mt-6">Stockage local de préférences</h2>
+        <p>Le navigateur conserve localement quelques préférences d'affichage (thème clair/sombre, menus repliés, profil affiché, derniers réglages de saisie). Elles servent uniquement au fonctionnement de l'interface et ne sont transmises à aucun tiers.</p>
+
+        <h2 class="text-lg font-bold text-gray-800 mt-6">Services tiers</h2>
+        <p>Flenova n'utilise <strong>aucun outil de mesure d'audience ni traceur publicitaire</strong> : aucune bannière de consentement n'est donc requise. Polices, icônes et bibliothèques sont hébergées par Flenova. Deux services externes sont sollicités pour le fonctionnement : Cloudflare Turnstile (vérification anti-robots sur les formulaires d'inscription et de connexion, traceur strictement nécessaire à la sécurité) et OpenFreeMap (images des fonds de carte, sans cookie).</p>
 
         <h2 class="text-lg font-bold text-gray-800 mt-6">Gestion</h2>
         <p>Vous pouvez supprimer les cookies via les paramètres de votre navigateur. La déconnexion invalide la session côté serveur.</p>

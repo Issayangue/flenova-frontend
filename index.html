@@ -23,16 +23,16 @@
     <meta name="twitter:image" content="https://app.flenova.fr/assets/flenova_icon_512.jpg">
     <link rel="icon" href="assets/flenova_icon_512.jpg" type="image/jpeg">
     <link rel="apple-touch-icon" href="assets/flenova_icon_512.jpg">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="/assets/vendor/fontawesome/css/all.min.css">
     <!-- Tailwind CSS -->
-    <link rel="stylesheet" href="css/tailwind.css?v=b03005caae">
+    <link rel="stylesheet" href="css/tailwind.css?v=60781ed8bd">
     <!-- Chart.js -->
-    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.5.1/dist/chart.umd.min.js"></script>
+    <script src="/assets/vendor/chart.js/chart.umd.min.js"></script>
     <!-- HTML2PDF -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <script src="/assets/vendor/html2pdf/html2pdf.bundle.min.js"></script>
 
     <!-- Custom CSS -->
-    <link rel="stylesheet" href="css/styles.css?v=93e2c747d4">
+    <link rel="stylesheet" href="css/styles.css?v=d77f9b2abd">
     <link rel="stylesheet" href="css/dashboard-v2.css?v=64bf3605fd">
     <link rel="stylesheet" href="css/a11y.css?v=74e430a130">
     <link rel="stylesheet" href="css/responsive-touch.css?v=cba7c54a56">
@@ -539,7 +539,7 @@
                 </div>
                 <div class="grid grid-cols-2 gap-4">
                     <div>
-                        <label for="add-order-price" class="block text-sm font-medium text-gray-700 mb-1">Prix (€)</label>
+                        <label for="add-order-price" class="block text-sm font-medium text-gray-700 mb-1">Prix HT (€)</label>
                     <input type="number" id="add-order-price" oninput="updateAddOrderMargin()" class="w-full border border-gray-300 rounded-md p-2 focus:ring-blue-500 focus:border-blue-500" placeholder="0">
                     </div>
                 </div>
@@ -587,7 +587,7 @@
                         </div>
                         <div class="grid grid-cols-2 gap-4">
                             <div>
-                                <label for="add-order-purchase-price" class="block text-sm font-medium text-gray-700 mb-1">Prix d'achat (€)</label>
+                                <label for="add-order-purchase-price" class="block text-sm font-medium text-gray-700 mb-1">Prix d'achat HT (€)</label>
                     <input type="number" id="add-order-purchase-price" min="0" step="0.01" oninput="updateAddOrderMargin()" class="w-full border border-gray-300 rounded-md p-2 focus:ring-blue-500 focus:border-blue-500" placeholder="0">
                             </div>
                             <div>
@@ -814,7 +814,7 @@
                         </div>
                         <div class="grid grid-cols-2 gap-4">
                             <div>
-                                <label for="edit-order-purchase-price" class="block text-sm font-medium text-gray-700 mb-1">Prix d'achat (€)</label>
+                                <label for="edit-order-purchase-price" class="block text-sm font-medium text-gray-700 mb-1">Prix d'achat HT (€)</label>
                     <input type="number" id="edit-order-purchase-price" min="0" step="0.01" oninput="updateEditOrderMargin()" class="w-full border border-gray-300 rounded-md p-2 focus:ring-blue-500 focus:border-blue-500" placeholder="0">
                             </div>
                             <div>
@@ -839,7 +839,7 @@
                         </select>
                     </div>
                     <div>
-                        <label for="edit-order-price" class="block text-sm font-medium text-gray-700 mb-1">Prix (€)</label>
+                        <label for="edit-order-price" class="block text-sm font-medium text-gray-700 mb-1">Prix HT (€)</label>
                     <input type="number" id="edit-order-price" oninput="updateEditOrderMargin()" class="w-full border border-gray-300 rounded-md p-2 focus:ring-blue-500 focus:border-blue-500">
                     </div>
                 </div>
@@ -955,10 +955,57 @@
                     <label for="add-client-name" class="block text-sm font-medium text-gray-700 mb-1">Nom du Client</label>
                     <input type="text" id="add-client-name" class="w-full border border-gray-300 rounded-md p-2 focus:ring-blue-500 focus:border-blue-500">
                 </div>
-                <div>
-                    <label for="add-client-siret" class="block text-sm font-medium text-gray-700 mb-1">SIRET</label>
-                    <input type="text" id="add-client-siret" maxlength="14" class="w-full border border-gray-300 rounded-md p-2 focus:ring-blue-500 focus:border-blue-500">
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label for="add-client-country" class="block text-sm font-medium text-gray-700 mb-1">Pays</label>
+                        <select id="add-client-country" onchange="updateClientSiretHint()" class="w-full border border-gray-300 rounded-md p-2 bg-white focus:ring-blue-500 focus:border-blue-500">
+                            <option value="FR">France</option>
+                            <optgroup label="Union européenne">
+                                <option value="DE">Allemagne</option>
+                                <option value="AT">Autriche</option>
+                                <option value="BE">Belgique</option>
+                                <option value="BG">Bulgarie</option>
+                                <option value="CY">Chypre</option>
+                                <option value="HR">Croatie</option>
+                                <option value="DK">Danemark</option>
+                                <option value="ES">Espagne</option>
+                                <option value="EE">Estonie</option>
+                                <option value="FI">Finlande</option>
+                                <option value="GR">Grèce</option>
+                                <option value="HU">Hongrie</option>
+                                <option value="IE">Irlande</option>
+                                <option value="IT">Italie</option>
+                                <option value="LV">Lettonie</option>
+                                <option value="LT">Lituanie</option>
+                                <option value="LU">Luxembourg</option>
+                                <option value="MT">Malte</option>
+                                <option value="NL">Pays-Bas</option>
+                                <option value="PL">Pologne</option>
+                                <option value="PT">Portugal</option>
+                                <option value="CZ">République tchèque</option>
+                                <option value="RO">Roumanie</option>
+                                <option value="SK">Slovaquie</option>
+                                <option value="SI">Slovénie</option>
+                                <option value="SE">Suède</option>
+                            </optgroup>
+                            <optgroup label="Hors Union européenne">
+                                <option value="AD">Andorre</option>
+                                <option value="MA">Maroc</option>
+                                <option value="MC">Monaco</option>
+                                <option value="NO">Norvège</option>
+                                <option value="GB">Royaume-Uni</option>
+                                <option value="CH">Suisse</option>
+                                <option value="TN">Tunisie</option>
+                                <option value="TR">Turquie</option>
+                            </optgroup>
+                        </select>
+                    </div>
+                    <div>
+                        <label for="add-client-siret" class="block text-sm font-medium text-gray-700 mb-1">SIREN / SIRET <span id="add-client-siret-optional" class="text-gray-400 font-normal hidden">(facultatif)</span></label>
+                        <input type="text" id="add-client-siret" maxlength="14" inputmode="numeric" pattern="[0-9]{9}([0-9]{5})?" autocomplete="off" oninput="this.value=this.value.replace(/\D/g,'').slice(0,14)" title="SIREN (9 chiffres) ou SIRET (14 chiffres), sans espace" placeholder="55210055400013" class="w-full border border-gray-300 rounded-md p-2 focus:ring-blue-500 focus:border-blue-500">
+                    </div>
                 </div>
+                <p id="add-client-siret-hint" class="-mt-2 text-xs text-gray-500">Obligatoire pour facturer un client français (mention légale). 9 ou 14 chiffres, sans espace.</p>
                 <div class="grid grid-cols-2 gap-4">
                     <div>
                         <label for="add-client-email" class="block text-sm font-medium text-gray-700 mb-1">Email</label>
@@ -1626,8 +1673,8 @@
                     <input type="text" id="add-subcontractor-name" required class="w-full border border-gray-300 rounded-md p-2 focus:ring-blue-500 focus:border-blue-500">
                 </div>
                 <div>
-                    <label for="add-subcontractor-siret" class="block text-sm font-medium text-gray-700 mb-1">SIRET (14 chiffres)</label>
-                    <input type="text" id="add-subcontractor-siret" maxlength="14" class="w-full border border-gray-300 rounded-md p-2 focus:ring-blue-500 focus:border-blue-500" placeholder="12345678901234">
+                    <label for="add-subcontractor-siret" class="block text-sm font-medium text-gray-700 mb-1">SIREN / SIRET</label>
+                    <input type="text" id="add-subcontractor-siret" maxlength="14" inputmode="numeric" pattern="[0-9]{9}([0-9]{5})?" autocomplete="off" oninput="this.value=this.value.replace(/\D/g,'').slice(0,14)" title="SIREN (9 chiffres) ou SIRET (14 chiffres), sans espace" class="w-full border border-gray-300 rounded-md p-2 focus:ring-blue-500 focus:border-blue-500" placeholder="55210055400013">
                 </div>
                 <div class="grid grid-cols-2 gap-4">
                     <div>
@@ -1733,7 +1780,7 @@
                 <input type="hidden" id="dispatch-order-id">
                 <div class="bg-blue-50 p-3 rounded-lg mb-4">
                     <p class="text-sm text-gray-600">Commande: <strong id="dispatch-order-ref">#--</strong></p>
-                    <p class="text-sm text-gray-600">Prix de vente: <strong id="dispatch-order-price">0€</strong></p>
+                    <p class="text-sm text-gray-600">Prix de vente HT : <strong id="dispatch-order-price">0€</strong></p>
                 </div>
                 <p id="dispatch-already-affrete-banner" class="hidden text-xs font-semibold text-amber-800 bg-amber-50 border border-amber-200 rounded-lg p-3"></p>
                 <div>
@@ -1744,16 +1791,16 @@
                     <p class="text-xs text-red-500 mt-1 hidden" id="dispatch-subcontractor-warning">⚠️ Ce sous-traitant a une assurance expirée</p>
                 </div>
                 <div>
-                    <label for="dispatch-purchase-price" class="block text-sm font-medium text-gray-700 mb-1">Prix d'achat (€) *</label>
+                    <label for="dispatch-purchase-price" class="block text-sm font-medium text-gray-700 mb-1">Prix d'achat HT (€) *</label>
                     <input type="number" id="dispatch-purchase-price" oninput="calculateDispatchMargin()" class="w-full border border-gray-300 rounded-md p-2 focus:ring-blue-500 focus:border-blue-500" placeholder="0">
                 </div>
                 <div class="bg-gray-100 p-4 rounded-lg">
                     <div class="flex justify-between mb-2">
-                        <span class="text-gray-600">Prix de vente:</span>
+                        <span class="text-gray-600">Prix de vente HT :</span>
                         <span class="font-medium" id="dispatch-sale-display">0.00€</span>
                     </div>
                     <div class="flex justify-between mb-2">
-                        <span class="text-gray-600">Prix d'achat:</span>
+                        <span class="text-gray-600">Prix d'achat HT :</span>
                         <span class="font-medium" id="dispatch-cost-display">0.00€</span>
                     </div>
                     <div class="flex justify-between border-t border-gray-300 pt-2">
@@ -2133,18 +2180,18 @@
     <!-- JAVASCRIPT -->
     <script src="js/security.js?v=2a5e366b56"></script>
     <script src="js/api.js?v=d66a93bbec"></script>
-    <script src="js/legal-pages.js?v=a3ebf6f1ab"></script>
+    <script src="js/legal-pages.js?v=7f7a4d6b73"></script>
     <script src="js/commercial-pages.js?v=d187899cce"></script>
     <script src="js/platform-ops.js?v=5782e8e27c"></script>
     <script src="js/platform-crm.js?v=e66e044d08"></script>
     <script src="js/disputes.js?v=07ca2f2d41"></script>
     <script src="js/permissions.js?v=a8b2f8c9eb"></script>
     <script src="js/subscription.js?v=5979b6bc01"></script>
-    <script src="js/ux-improvements.js?v=c56ab24ae7"></script>
-    <script src="js/ux-deferred.js?v=78439d7901"></script>
-    <script src="js/live-map.js?v=c18e010607"></script>
+    <script src="js/ux-improvements.js?v=9f812cd3b2"></script>
+    <script src="js/ux-deferred.js?v=3ea7912450"></script>
+    <script src="js/live-map.js?v=bb5c1b8787"></script>
     <script src="js/document-ocr.js?v=43cc0681fb"></script>
-    <script src="js/app.js?v=5cc3da0604"></script>
+    <script src="js/app.js?v=39707526b1"></script>
     <script src="js/mvp-transport.js?v=9b21f1f596"></script>
 </body>
 

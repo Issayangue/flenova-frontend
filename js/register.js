@@ -147,7 +147,7 @@ if (registerForm) registerForm.addEventListener('submit', async (e) => {
 
     const privacyAccepted = document.getElementById('reg-privacy')?.checked;
     if (!privacyAccepted) {
-        showToast('Veuillez accepter la politique de confidentialité et les CGU', 'error');
+        showToast('Veuillez accepter les CGU, les CGV et la politique de confidentialité', 'error');
         btn.disabled = false;
         btn.innerHTML = originalText;
         return;
