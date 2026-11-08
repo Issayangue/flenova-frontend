@@ -232,6 +232,21 @@ function renderCrmDetailPanel(detail) {
             </section>
 
             <section class="platform-crm-detail-section">
+                <h4>Modules complémentaires</h4>
+                <div class="flex items-center justify-between gap-4">
+                    <div>
+                        <p class="text-sm font-medium text-gray-800">Module Chargeur</p>
+                        <p class="text-xs text-gray-500">Moteur d'affectation, portail client, API EDI/ERP</p>
+                    </div>
+                    <button type="button"
+                        onclick="toggleChargeurModule(${detail.id}, ${!detail.chargeurEnabled})"
+                        class="platform-crm-btn text-xs ${detail.chargeurEnabled ? 'platform-crm-btn--danger' : 'platform-crm-btn--primary'}">
+                        ${detail.chargeurEnabled ? 'Désactiver' : 'Activer'}
+                    </button>
+                </div>
+            </section>
+
+            <section class="platform-crm-detail-section">
                 <h4>Activité plateforme</h4>
                 <div class="platform-crm-stats-grid">
                     <div><span>${stats.orders ?? 0}</span><small>Transports</small></div>
@@ -552,6 +567,18 @@ async function saveCrmClientDetail(e, companyId) {
     }
 }
 
+async function toggleChargeurModule(companyId, enable) {
+    try {
+        const res = await apiFetch(`platform/crm/${companyId}/modules/chargeur`, { method: 'PATCH', body: { enabled: enable } });
+        const json = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error(json.error || 'Mise à jour impossible');
+        showToast(json.message || 'Module Chargeur mis à jour', 'success');
+        await openCrmClientDetail(companyId, { scroll: false });
+    } catch (err) {
+        showToast(err.message, 'error');
+    }
+}
+
 async function updateCrmContactStatus(contactId, status) {
     try {
         const res = await apiFetch(`platform/crm/contacts/${contactId}`, { method: 'PATCH', body: { status } });
@@ -572,6 +599,7 @@ window.openCrmClientDetail = openCrmClientDetail;
 window.closeCrmClientDetail = closeCrmClientDetail;
 window.saveCrmClientDetail = saveCrmClientDetail;
 window.updateCrmContactStatus = updateCrmContactStatus;
+window.toggleChargeurModule = toggleChargeurModule;
 window.loadNumelysBillingPreview = loadNumelysBillingPreview;
 window.syncNumelysAllClients = syncNumelysAllClients;
 window.syncNumelysClient = syncNumelysClient;

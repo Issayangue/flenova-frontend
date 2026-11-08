@@ -1799,6 +1799,14 @@ body.platform-operator-mode #demo-banner {
 .platform-crm-btn--primary:hover {
     background: #0f766e;
 }
+.platform-crm-btn--danger {
+    background: #dc2626;
+    border-color: #dc2626;
+    color: #fff;
+}
+.platform-crm-btn--danger:hover {
+    background: #b91c1c;
+}
 .platform-crm-layout {
     display: grid;
     grid-template-columns: 1fr;
