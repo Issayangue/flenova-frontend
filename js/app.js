@@ -7354,7 +7354,6 @@ async function renderPublicTrackingPage() {
                     <h2 class="text-xs uppercase text-gray-500 font-bold mb-3">Historique</h2>
                     ${timeline}
                 </div>
-                <button type="button" onclick="publicRouter('tracking')" class="mt-6 text-sm text-gray-500 hover:text-gray-800">← Nouveau code</button>
             </div>
         </div>`;
     } catch (e) {
