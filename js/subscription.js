@@ -210,6 +210,97 @@ function renderPricingCards(options = {}) {
         <span class="text-sm text-gray-500">Facturation mensuelle · Prélèvement SEPA · Résiliation possible à tout moment, sous réserve d’un préavis d’1 mois (effet en fin de période mensuelle) · Suppléments : +29 €/utilisateur PC · +19 €/chauffeur mobile / mois · +1,50 €/confirmation affrètement au-delà du quota (20/mois Indépendant · 50/mois PME · illimité Premium).</span></p>`;
 }
 
+function renderChargeurPricingSection() {
+    const rows = [
+        { label: 'Base mensuelle',           starter: '99 €',                growth: '249 €',              scale: '599 €',               highlight: true },
+        { label: 'Expéditions incluses',      starter: '50 / mois',           growth: '300 / mois',         scale: '1 000 / mois' },
+        { label: 'Dépassement',               starter: '1,50 € / expédition', growth: '0,80 € / expédition',scale: '0,40 € / expédition' },
+        { label: 'Utilisateurs',              starter: '2',                   growth: '5',                  scale: '10' },
+        { label: 'Utilisateur supplémentaire',starter: '—',                   growth: '15 € / user / mois', scale: '10 € / user / mois' },
+        { label: 'Grilles tarifaires',        starter: '5',                   growth: '20',                 scale: 'Illimité' },
+        { label: "Moteur d'affectation",      starter: 'Règles simples',      growth: 'Multi-critères',     scale: 'Multi-critères + auto',
+          starterIcon: 'check', growthIcon: 'check', scaleIcon: 'check' },
+        { label: 'Préfacturation',            starter: null, growth: null, scale: null,
+          starterIcon: 'check', growthIcon: 'check', scaleIcon: 'check' },
+        { label: 'Audit facture',             starter: null, growth: null, scale: null,
+          starterIcon: 'no', growthIcon: 'check', scaleIcon: 'check' },
+        { label: 'Portail client',            starter: null, growth: '1 client', scale: '5 clients',
+          starterIcon: 'no', growthIcon: 'check', scaleIcon: 'check' },
+        { label: 'API / EDI',                 starter: null, growth: 'API', scale: 'API + EDI',
+          starterIcon: 'no', growthIcon: 'check', scaleIcon: 'check' },
+        { label: 'Reporting',                 starter: 'Basique',             growth: 'Standard',           scale: 'Avancé + exports' },
+        { label: 'Support',                   starter: 'Email (48h)',          growth: 'Email + chat (24h)', scale: 'Dédiqué (4h)' },
+    ];
+
+    const icon = (kind) => {
+        if (kind === 'check') return '<i class="fa-solid fa-check text-green-500 mr-1"></i>';
+        if (kind === 'no')    return '<i class="fa-solid fa-xmark text-gray-300 mr-1"></i>';
+        return '';
+    };
+
+    const cell = (rowIcon, text, extraClass = '') => {
+        const content = text ? `${icon(rowIcon)}${text}` : icon(rowIcon);
+        return `<td class="px-4 py-3 text-sm text-gray-700 ${extraClass}">${content}</td>`;
+    };
+
+    const tableRows = rows.map((r) => {
+        const bg = r.highlight ? 'bg-blue-50 font-semibold' : '';
+        return `<tr class="border-t border-gray-100 ${bg}">
+            <td class="px-4 py-3 text-sm font-medium text-gray-800">${r.label}</td>
+            ${cell(r.starterIcon, r.starter, 'text-center')}
+            ${cell(r.growthIcon,  r.growth,  'text-center')}
+            ${cell(r.scaleIcon,   r.scale,   'text-center font-medium text-indigo-800')}
+        </tr>`;
+    }).join('');
+
+    return `<div class="mt-16 border-t-2 border-gray-100 pt-14">
+        <div class="text-center mb-10">
+            <span class="inline-block bg-indigo-100 text-indigo-700 text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wide mb-3">Module complémentaire</span>
+            <h2 class="text-3xl font-extrabold text-gray-900 mb-3">Module Chargeur</h2>
+            <p class="text-gray-500 max-w-2xl mx-auto">Ajoutez la couche affréteur à votre TMS Flenova — grilles tarifaires, moteur d'affectation multi-critères, rapprochement automatique des factures transporteur, portail client et intégration ERP / EDI.</p>
+            <p class="mt-2 text-sm text-indigo-600 font-medium">Activable indépendamment sur tout forfait Flenova</p>
+        </div>
+        <div class="overflow-x-auto rounded-2xl shadow-sm border border-gray-200">
+            <table class="w-full text-left bg-white">
+                <thead>
+                    <tr class="text-sm">
+                        <th class="px-4 py-4 text-gray-500 font-normal w-1/4 bg-gray-50 rounded-tl-2xl">Fonctionnalité</th>
+                        <th class="px-4 py-4 text-center bg-blue-50 border-l border-gray-100">
+                            <p class="text-blue-700 font-bold text-base">Starter</p>
+                            <p class="text-blue-900 font-extrabold text-2xl">99 €<span class="text-sm font-normal text-gray-500">/mois</span></p>
+                        </th>
+                        <th class="px-4 py-4 text-center bg-indigo-50 border-l border-gray-100">
+                            <p class="text-indigo-700 font-bold text-base">Growth</p>
+                            <p class="text-indigo-900 font-extrabold text-2xl">249 €<span class="text-sm font-normal text-gray-500">/mois</span></p>
+                            <span class="inline-block mt-1 bg-indigo-600 text-white text-xs px-2 py-0.5 rounded-full">Recommandé</span>
+                        </th>
+                        <th class="px-4 py-4 text-center bg-violet-50 border-l border-gray-100 rounded-tr-2xl">
+                            <p class="text-violet-700 font-bold text-base">Scale</p>
+                            <p class="text-violet-900 font-extrabold text-2xl">599 €<span class="text-sm font-normal text-gray-500">/mois</span></p>
+                        </th>
+                    </tr>
+                </thead>
+                <tbody>${tableRows}</tbody>
+                <tfoot>
+                    <tr class="border-t border-gray-100 bg-gray-50">
+                        <td class="px-4 py-4 rounded-bl-2xl"></td>
+                        <td class="px-4 py-4 text-center border-l border-gray-100">
+                            <button type="button" onclick="publicRouterContactTrial('chargeur-starter')" class="w-full py-2 text-sm border border-blue-600 text-blue-600 hover:bg-blue-50 rounded-lg font-semibold transition">Demander une démo</button>
+                        </td>
+                        <td class="px-4 py-4 text-center border-l border-gray-100">
+                            <button type="button" onclick="publicRouterContactTrial('chargeur-growth')" class="w-full py-2 text-sm bg-indigo-600 text-white hover:bg-indigo-700 rounded-lg font-semibold transition">Demander une démo</button>
+                        </td>
+                        <td class="px-4 py-4 text-center border-l border-gray-100 rounded-br-2xl">
+                            <button type="button" onclick="publicRouterContactTrial('chargeur-scale')" class="w-full py-2 text-sm border border-violet-600 text-violet-600 hover:bg-violet-50 rounded-lg font-semibold transition">Demander une démo</button>
+                        </td>
+                    </tr>
+                </tfoot>
+            </table>
+        </div>
+        <p class="mt-6 text-center text-sm text-gray-500">Tous les tarifs sont hors taxes · Facturation mensuelle · Sans engagement de durée · Activable à tout moment sur votre forfait Flenova.</p>
+    </div>`;
+}
+
 async function renderPublicPricingAsync() {
     await loadPublicPlans();
     return `<div class="fade-in">
@@ -221,6 +312,7 @@ async function renderPublicPricingAsync() {
         </div>
         <div class="max-w-6xl mx-auto px-4 sm:px-6 py-12">
             ${renderPricingCards({ mode: 'public' })}
+            ${renderChargeurPricingSection()}
         </div>
     </div>`;
 }

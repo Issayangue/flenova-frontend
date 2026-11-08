@@ -858,7 +858,12 @@ function getPublicPlanName(planId) {
     if (!planId) return null;
     const fromCache = window.cachedPlans?.find((p) => p.id === planId);
     if (fromCache?.name) return fromCache.name;
-    const labels = { independant: 'Indépendant', pme: 'PME', premium: 'Premium' };
+    const labels = {
+        independant: 'Indépendant', pme: 'PME', premium: 'Premium',
+        'chargeur-starter': 'Module Chargeur — Starter',
+        'chargeur-growth':  'Module Chargeur — Growth',
+        'chargeur-scale':   'Module Chargeur — Scale',
+    };
     return labels[planId] || planId;
 }
 
