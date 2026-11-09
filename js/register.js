@@ -3,11 +3,6 @@
  */
 
 const VALID_PLANS = ['independant', 'pme', 'premium'];
-const PLAN_LABELS = {
-    independant: 'Indépendant — transporteur solo (voir tarifs sur le site)',
-    pme: 'PME — équipe et sous-traitance (voir tarifs sur le site)',
-    premium: 'Premium — multi-agences et volume (voir tarifs sur le site)'
-};
 
 function showToast(message, type = 'info') {
     const container = document.getElementById('toast-container');
@@ -93,25 +88,53 @@ function showVerificationNotice(email, trialDays) {
 function getSelectedPlan() {
     const params = new URLSearchParams(window.location.search);
     const fromUrl = (params.get('plan') || '').trim().toLowerCase();
-    const select = document.getElementById('reg-plan');
-    const fromSelect = select?.value || 'independant';
+    const input = document.getElementById('reg-plan');
+    const fromInput = input?.value || 'pme';
     if (VALID_PLANS.includes(fromUrl)) return fromUrl;
-    return VALID_PLANS.includes(fromSelect) ? fromSelect : 'independant';
+    return VALID_PLANS.includes(fromInput) ? fromInput : 'pme';
 }
 
 function initPlanSelector() {
-    const plan = getSelectedPlan();
-    const select = document.getElementById('reg-plan');
-    if (select) select.value = plan;
-    const label = document.getElementById('reg-plan-label');
-    if (label) label.textContent = PLAN_LABELS[plan] || PLAN_LABELS.independant;
-    select?.addEventListener('change', () => {
-        const next = select.value;
-        if (label) label.textContent = PLAN_LABELS[next] || '';
+    const hiddenInput = document.getElementById('reg-plan');
+    if (!hiddenInput) return;
+
+    const params = new URLSearchParams(window.location.search);
+    const fromUrl = (params.get('plan') || '').trim().toLowerCase();
+    const initial = VALID_PLANS.includes(fromUrl) ? fromUrl : 'pme';
+
+    function activateCard(plan) {
+        hiddenInput.value = plan;
+        document.querySelectorAll('.plan-card').forEach(card => {
+            const active = card.dataset.plan === plan;
+            card.classList.toggle('border-blue-500', active);
+            card.classList.toggle('bg-blue-50', active);
+            card.classList.toggle('border-gray-200', !active);
+            card.classList.toggle('bg-white', !active);
+        });
         const url = new URL(window.location.href);
-        url.searchParams.set('plan', next);
+        url.searchParams.set('plan', plan);
         window.history.replaceState({}, '', url);
+    }
+
+    activateCard(initial);
+
+    document.querySelectorAll('.plan-card').forEach(card => {
+        card.addEventListener('click', () => activateCard(card.dataset.plan));
     });
+
+    const chargeurCheckbox = document.getElementById('reg-chargeur');
+    const chargeurBlock = document.getElementById('chargeur-block');
+    if (chargeurCheckbox && chargeurBlock) {
+        function updateChargeurStyle() {
+            const checked = chargeurCheckbox.checked;
+            chargeurBlock.classList.toggle('border-indigo-400', checked);
+            chargeurBlock.classList.toggle('bg-indigo-50', checked);
+            chargeurBlock.classList.toggle('border-indigo-200', !checked);
+            chargeurBlock.classList.toggle('bg-white', !checked);
+        }
+        chargeurCheckbox.addEventListener('change', updateChargeurStyle);
+        updateChargeurStyle();
+    }
 }
 
 initPlanSelector();
