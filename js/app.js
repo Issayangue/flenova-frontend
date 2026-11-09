@@ -1231,6 +1231,14 @@ function updateAppCompanyHeader(user) {
 }
 window.updateAppCompanyHeader = updateAppCompanyHeader;
 
+function applyChargeurNav(user) {
+    const nav = document.getElementById('chargeur-nav');
+    if (!nav) return;
+    const enabled = user?.chargeur_enabled === 1 || user?.chargeur_enabled === true;
+    nav.classList.toggle('hidden', !enabled);
+}
+window.applyChargeurNav = applyChargeurNav;
+
 const SIDEBAR_GROUP_ROUTES = {
     sales_invoices: new Set([
         'sales_invoices', 'sales_invoices_validated', 'sales_invoices_draft',
@@ -1406,6 +1414,7 @@ function initMobileNav() {
             if (typeof hydrateSubscription === 'function') hydrateSubscription(data);
             if (typeof updateAppCompanyHeader === 'function') updateAppCompanyHeader(data.user);
             if (typeof applyPlatformAdminNav === 'function') applyPlatformAdminNav(data.user);
+            if (typeof applyChargeurNav === 'function') applyChargeurNav(data.user);
             isAuthenticated = true;
             if (typeof fetchPlatformStatus === 'function') await fetchPlatformStatus(true);
             if (typeof showAppMaintenanceIfNeeded === 'function' && showAppMaintenanceIfNeeded(window.cachedPlatformStatus)) {
@@ -7910,6 +7919,33 @@ async function router(route) {
             content = renderQuotationCalculator();
             setTimeout(updateQuotation, 50);
             break;
+        // ── Module Chargeur ───────────────────────────────────────────────────────
+        case 'chargeur_rate_cards':
+            title = 'Grilles tarifaires';
+            content = renderChargeurRateCards();
+            setTimeout(() => loadChargeurRateCards(), 0);
+            break;
+        case 'chargeur_contracts':
+            title = 'Contrats transporteurs';
+            content = renderChargeurContracts();
+            setTimeout(() => loadChargeurContracts(), 0);
+            break;
+        case 'chargeur_assignments':
+            title = 'Affectations transporteurs';
+            content = renderChargeurAssignments();
+            setTimeout(() => loadChargeurAssignments(), 0);
+            break;
+        case 'chargeur_carrier_invoices':
+            title = 'Audit factures transporteur';
+            content = renderChargeurCarrierInvoices();
+            setTimeout(() => loadChargeurCarrierInvoices(), 0);
+            break;
+        case 'chargeur_reporting':
+            title = 'Reporting Chargeur';
+            content = renderChargeurReporting();
+            setTimeout(() => loadChargeurReporting(), 0);
+            break;
+
         default:
             title = 'Tableau de bord';
             await refreshDashboardView();
@@ -12077,3 +12113,220 @@ async function deleteOrder() {
         showToast('Erreur serveur', 'error');
     }
 }
+
+// ════════════════════════════════════════════════════════════════════════════
+// MODULE CHARGEUR — pages
+// ════════════════════════════════════════════════════════════════════════════
+
+function chargeurPageShell(contentId, title, icon, description, onclickFn, btnLabel) {
+    return `
+    <div class="fade-in p-4 md:p-6 max-w-6xl mx-auto">
+      <div class="flex items-center justify-between mb-6 flex-wrap gap-3">
+        <div>
+          <h2 class="text-xl font-bold text-gray-900 flex items-center gap-2">
+            <i class="fa-solid ${icon} text-indigo-600"></i>${title}
+          </h2>
+          <p class="text-sm text-gray-500 mt-1">${description}</p>
+        </div>
+        <button onclick="${onclickFn}()"
+          class="inline-flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium px-4 py-2 rounded-lg shadow-sm transition-colors">
+          <i class="fa-solid fa-plus"></i>${btnLabel}
+        </button>
+      </div>
+      <div id="${contentId}-content">
+        <div class="text-center py-12 text-gray-400"><i class="fa-solid fa-spinner fa-spin text-2xl"></i></div>
+      </div>
+    </div>`;
+}
+
+function renderChargeurRateCards() {
+    return chargeurPageShell(
+        'rate-cards', 'Grilles tarifaires', 'fa-table-list',
+        'Définissez vos grilles de prix par transporteur : tarifs à plat, au km, par palette, avec surcharges.',
+        'openNewRateCardModal', 'Nouvelle grille'
+    );
+}
+
+function renderChargeurContracts() {
+    return chargeurPageShell(
+        'contracts', 'Contrats transporteurs', 'fa-file-contract',
+        'Associez une grille tarifaire à chaque transporteur sous-traitant avec ses conditions contractuelles.',
+        'openNewContractModal', 'Nouveau contrat'
+    );
+}
+
+function renderChargeurAssignments() {
+    return chargeurPageShell(
+        'assignments', 'Affectations transporteurs', 'fa-network-wired',
+        'Moteur de scoring automatique : classez les transporteurs disponibles et affectez la meilleure offre.',
+        'openNewAssignmentModal', 'Nouvelle affectation'
+    );
+}
+
+function renderChargeurCarrierInvoices() {
+    return chargeurPageShell(
+        'carrier-invoices', 'Audit factures transporteur', 'fa-magnifying-glass-dollar',
+        'Importez, rapprochez et disputez les factures transporteur par rapport à vos préfactures.',
+        'openUploadInvoiceModal', 'Importer une facture'
+    );
+}
+
+function renderChargeurReporting() {
+    return `
+    <div class="fade-in p-4 md:p-6 max-w-6xl mx-auto">
+      <div class="mb-6">
+        <h2 class="text-xl font-bold text-gray-900 flex items-center gap-2">
+          <i class="fa-solid fa-chart-column text-indigo-600"></i>Reporting Chargeur
+        </h2>
+        <p class="text-sm text-gray-500 mt-1">Analysez vos coûts transport : marge, coût/km, taux de remplissage, scoring transporteur.</p>
+      </div>
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-6" id="chargeur-kpi-cards">
+        <div class="text-center py-8 text-gray-400 col-span-3"><i class="fa-solid fa-spinner fa-spin text-2xl"></i></div>
+      </div>
+      <div id="chargeur-report-content"></div>
+    </div>`;
+}
+
+function chargeurTable(columns, rows, emptyMsg) {
+    if (!rows.length) {
+        return `<div class="rounded-lg border border-dashed border-gray-200 py-12 text-center text-gray-400 text-sm">${emptyMsg}</div>`;
+    }
+    const header = columns.map(c => `<th class="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider whitespace-nowrap">${c}</th>`).join('');
+    const body = rows.map(r => `<tr class="border-t border-gray-100 hover:bg-gray-50">${r}</tr>`).join('');
+    return `<div class="overflow-x-auto rounded-lg border border-gray-200 bg-white shadow-sm">
+      <table class="min-w-full divide-y divide-gray-100">
+        <thead class="bg-gray-50"><tr>${header}</tr></thead>
+        <tbody class="divide-y divide-gray-100 text-sm text-gray-700">${body}</tbody>
+      </table>
+    </div>`;
+}
+
+async function loadChargeurRateCards() {
+    const el = document.getElementById('rate-cards-content');
+    if (!el) return;
+    try {
+        const res = await apiFetch('chargeur/rate-cards');
+        const data = res.ok ? (await res.json()).data || [] : [];
+        const rows = data.map(rc => `
+            <td class="px-4 py-3 font-medium">${escapeHtml(rc.name)}</td>
+            <td class="px-4 py-3">${rc.type || '—'}</td>
+            <td class="px-4 py-3">${rc.base_rate != null ? Number(rc.base_rate).toFixed(2) + ' €' : '—'}</td>
+            <td class="px-4 py-3 text-gray-500">${rc.currency || 'EUR'}</td>
+            <td class="px-4 py-3 text-gray-400 text-xs">${rc.valid_from ? rc.valid_from.slice(0,10) : '—'}</td>`);
+        el.innerHTML = chargeurTable(['Nom', 'Type', 'Base', 'Devise', 'Valide dès'], rows,
+            'Aucune grille tarifaire. Cliquez sur « Nouvelle grille » pour commencer.');
+    } catch (e) {
+        el.innerHTML = `<p class="text-red-500 text-sm">Erreur de chargement : ${escapeHtml(e.message)}</p>`;
+    }
+}
+
+async function loadChargeurContracts() {
+    const el = document.getElementById('contracts-content');
+    if (!el) return;
+    try {
+        const res = await apiFetch('chargeur/contracts');
+        const data = res.ok ? (await res.json()).data || [] : [];
+        const rows = data.map(c => `
+            <td class="px-4 py-3 font-medium">${escapeHtml(c.carrier_name || c.carrier_id)}</td>
+            <td class="px-4 py-3">${escapeHtml(c.rate_card_name || '—')}</td>
+            <td class="px-4 py-3">${c.tolerance_pct != null ? c.tolerance_pct + ' %' : '5 %'}</td>
+            <td class="px-4 py-3 text-gray-400 text-xs">${c.start_date ? c.start_date.slice(0,10) : '—'}</td>`);
+        el.innerHTML = chargeurTable(['Transporteur', 'Grille associée', 'Tolérance', 'Début'], rows,
+            'Aucun contrat. Associez une grille tarifaire à un transporteur.');
+    } catch (e) {
+        el.innerHTML = `<p class="text-red-500 text-sm">Erreur de chargement : ${escapeHtml(e.message)}</p>`;
+    }
+}
+
+async function loadChargeurAssignments() {
+    const el = document.getElementById('assignments-content');
+    if (!el) return;
+    try {
+        const res = await apiFetch('chargeur/assignments');
+        const data = res.ok ? (await res.json()).data || [] : [];
+        const statusLabel = { PENDING: 'En attente', ACCEPTED: 'Accepté', REJECTED: 'Refusé', COMPLETED: 'Terminé' };
+        const statusColor = { PENDING: 'text-amber-600', ACCEPTED: 'text-green-600', REJECTED: 'text-red-500', COMPLETED: 'text-gray-500' };
+        const rows = data.map(a => `
+            <td class="px-4 py-3 font-mono text-xs text-gray-500">#${a.id}</td>
+            <td class="px-4 py-3 font-medium">${escapeHtml(a.carrier_name || a.carrier_id || '—')}</td>
+            <td class="px-4 py-3">${a.estimated_cost != null ? Number(a.estimated_cost).toFixed(2) + ' €' : '—'}</td>
+            <td class="px-4 py-3">${a.score != null ? a.score + '/100' : '—'}</td>
+            <td class="px-4 py-3 font-semibold ${statusColor[a.status] || ''}">${statusLabel[a.status] || a.status || '—'}</td>
+            <td class="px-4 py-3 text-gray-400 text-xs">${a.created_at ? a.created_at.slice(0,10) : '—'}</td>`);
+        el.innerHTML = chargeurTable(['Ref.', 'Transporteur', 'Coût estimé', 'Score', 'Statut', 'Date'], rows,
+            'Aucune affectation. Utilisez le moteur d\'affectation pour trouver le meilleur transporteur.');
+    } catch (e) {
+        el.innerHTML = `<p class="text-red-500 text-sm">Erreur de chargement : ${escapeHtml(e.message)}</p>`;
+    }
+}
+
+async function loadChargeurCarrierInvoices() {
+    const el = document.getElementById('carrier-invoices-content');
+    if (!el) return;
+    try {
+        const res = await apiFetch('chargeur/invoices');
+        const data = res.ok ? (await res.json()).data || [] : [];
+        const statusLabel = { PENDING: 'À traiter', MATCHED: 'Conforme', DISPUTED: 'Litigieuse', APPROVED: 'Approuvée' };
+        const statusColor = { PENDING: 'text-amber-600', MATCHED: 'text-green-600', DISPUTED: 'text-red-500', APPROVED: 'text-blue-600' };
+        const rows = data.map(inv => `
+            <td class="px-4 py-3 font-medium">${escapeHtml(inv.supplier_name || inv.carrier_name || '—')}</td>
+            <td class="px-4 py-3">${inv.invoice_number ? escapeHtml(inv.invoice_number) : '—'}</td>
+            <td class="px-4 py-3">${inv.total_amount != null ? Number(inv.total_amount).toFixed(2) + ' €' : '—'}</td>
+            <td class="px-4 py-3">${inv.prefacture_amount != null ? Number(inv.prefacture_amount).toFixed(2) + ' €' : '—'}</td>
+            <td class="px-4 py-3 font-semibold ${statusColor[inv.status] || ''}">${statusLabel[inv.status] || inv.status || '—'}</td>
+            <td class="px-4 py-3 text-gray-400 text-xs">${inv.invoice_date ? inv.invoice_date.slice(0,10) : '—'}</td>`);
+        el.innerHTML = chargeurTable(['Transporteur', 'N° facture', 'Montant', 'Préfacture', 'Statut', 'Date'], rows,
+            'Aucune facture importée. Cliquez sur « Importer » pour télécharger une facture PDF ou JSON.');
+    } catch (e) {
+        el.innerHTML = `<p class="text-red-500 text-sm">Erreur de chargement : ${escapeHtml(e.message)}</p>`;
+    }
+}
+
+async function loadChargeurReporting() {
+    const kpiEl = document.getElementById('chargeur-kpi-cards');
+    const reportEl = document.getElementById('chargeur-report-content');
+    if (!kpiEl) return;
+    try {
+        const [marginRes, overbillingRes, scoreRes] = await Promise.all([
+            apiFetch('chargeur/reports/margin'),
+            apiFetch('chargeur/reports/overbilling'),
+            apiFetch('chargeur/reports/carrier-score'),
+        ]);
+        const margin = marginRes.ok ? (await marginRes.json()).data || {} : {};
+        const overbilling = overbillingRes.ok ? (await overbillingRes.json()).data || {} : {};
+        const scores = scoreRes.ok ? (await scoreRes.json()).data || [] : [];
+
+        kpiEl.innerHTML = [
+            { label: 'Coût total transport', value: margin.total_cost != null ? Number(margin.total_cost).toFixed(2) + ' €' : '—', icon: 'fa-euro-sign', color: 'text-blue-600' },
+            { label: 'Économies réalisées', value: margin.savings != null ? Number(margin.savings).toFixed(2) + ' €' : '—', icon: 'fa-piggy-bank', color: 'text-green-600' },
+            { label: 'Factures litigieuses', value: overbilling.disputed_count != null ? overbilling.disputed_count : '—', icon: 'fa-triangle-exclamation', color: 'text-amber-600' },
+        ].map(kpi => `
+            <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-5 flex items-center gap-4">
+              <div class="w-12 h-12 rounded-full bg-gray-50 flex items-center justify-center flex-shrink-0">
+                <i class="fa-solid ${kpi.icon} text-xl ${kpi.color}"></i>
+              </div>
+              <div>
+                <p class="text-xs text-gray-500 uppercase tracking-wide">${kpi.label}</p>
+                <p class="text-2xl font-bold text-gray-900 mt-0.5">${kpi.value}</p>
+              </div>
+            </div>`).join('');
+
+        if (scores.length && reportEl) {
+            const rows = scores.slice(0, 10).map(s => `
+                <td class="px-4 py-3 font-medium">${escapeHtml(s.carrier_name || '—')}</td>
+                <td class="px-4 py-3">${s.score != null ? s.score + '/100' : '—'}</td>
+                <td class="px-4 py-3">${s.on_time_rate != null ? s.on_time_rate + ' %' : '—'}</td>
+                <td class="px-4 py-3">${s.order_count != null ? s.order_count : '—'}</td>`);
+            reportEl.innerHTML = `<h3 class="text-sm font-semibold text-gray-700 mb-3">Score transporteurs</h3>` +
+                chargeurTable(['Transporteur', 'Score global', 'Ponctualité', 'Nb commandes'], rows, '');
+        }
+    } catch (e) {
+        kpiEl.innerHTML = `<p class="text-red-500 text-sm col-span-3">Erreur de chargement : ${escapeHtml(e.message)}</p>`;
+    }
+}
+
+// Stubs pour les boutons "Nouveau" — à implémenter avec modales
+function openNewRateCardModal() { showToast('Formulaire grille tarifaire — à venir', 'info'); }
+function openNewContractModal() { showToast('Formulaire contrat — à venir', 'info'); }
+function openNewAssignmentModal() { showToast('Formulaire affectation — à venir', 'info'); }
+function openUploadInvoiceModal() { showToast('Import facture PDF — à venir', 'info'); }

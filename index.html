@@ -274,6 +274,42 @@
                     </ul>
                 </div>
 
+                <div id="chargeur-nav" class="hidden sidebar-section mb-4 pt-2 border-t border-slate-700">
+                    <p class="px-6 text-xs font-semibold text-indigo-400 uppercase tracking-wider mb-2">Module Chargeur</p>
+                    <ul class="space-y-1">
+                        <li data-nav-route="chargeur_rate_cards"><button type="button" onclick="router('chargeur_rate_cards')"
+                                class="nav-item flex items-center px-6 py-3 hover:bg-slate-800 transition-colors text-gray-400 border-r-4 border-transparent">
+                                <i class="fa-solid fa-table-list w-6" aria-hidden="true"></i>
+                                <span>Grilles tarifaires</span>
+                            </button>
+                        </li>
+                        <li data-nav-route="chargeur_contracts"><button type="button" onclick="router('chargeur_contracts')"
+                                class="nav-item flex items-center px-6 py-3 hover:bg-slate-800 transition-colors text-gray-400 border-r-4 border-transparent">
+                                <i class="fa-solid fa-file-contract w-6" aria-hidden="true"></i>
+                                <span>Contrats transporteurs</span>
+                            </button>
+                        </li>
+                        <li data-nav-route="chargeur_assignments"><button type="button" onclick="router('chargeur_assignments')"
+                                class="nav-item flex items-center px-6 py-3 hover:bg-slate-800 transition-colors text-gray-400 border-r-4 border-transparent">
+                                <i class="fa-solid fa-network-wired w-6" aria-hidden="true"></i>
+                                <span>Affectations</span>
+                            </button>
+                        </li>
+                        <li data-nav-route="chargeur_carrier_invoices"><button type="button" onclick="router('chargeur_carrier_invoices')"
+                                class="nav-item flex items-center px-6 py-3 hover:bg-slate-800 transition-colors text-gray-400 border-r-4 border-transparent">
+                                <i class="fa-solid fa-magnifying-glass-dollar w-6" aria-hidden="true"></i>
+                                <span>Audit factures</span>
+                            </button>
+                        </li>
+                        <li data-nav-route="chargeur_reporting"><button type="button" onclick="router('chargeur_reporting')"
+                                class="nav-item flex items-center px-6 py-3 hover:bg-slate-800 transition-colors text-gray-400 border-r-4 border-transparent">
+                                <i class="fa-solid fa-chart-column w-6" aria-hidden="true"></i>
+                                <span>Reporting</span>
+                            </button>
+                        </li>
+                    </ul>
+                </div>
+
                 <div class="sidebar-group mb-2 mt-2 pt-2 border-t border-slate-800" data-sidebar-group="compte">
                     <button type="button" class="sidebar-group-toggle" onclick="toggleSidebarGroup('compte')" aria-expanded="false" aria-controls="sidebar-group-compte">
                         <i class="fa-solid fa-user-gear w-6" aria-hidden="true"></i>
