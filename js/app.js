@@ -3618,6 +3618,7 @@ function renderClients() {
                     class="px-3 py-1.5 rounded text-sm border border-red-300 text-red-600 hover:bg-red-50 disabled:opacity-40 disabled:cursor-not-allowed">
                     <i class="fa-solid fa-trash mr-1"></i>Supprimer la sélection${selectedCount ? ` (${selectedCount})` : ''}
                 </button>` : ''}
+                ${canManage ? `<button onclick="openImportClientsModal()" class="px-3 py-1.5 rounded text-sm border border-green-600 text-green-700 hover:bg-green-50" title="Importer depuis un fichier Excel ou CSV"><i class="fa-solid fa-file-import mr-1"></i>Importer</button>` : ''}
                 ${canManage ? `<button onclick="openAddClientModal()" class="bg-blue-600 text-white px-4 py-2 rounded text-sm shadow hover:bg-blue-700"><i class="fa-solid fa-plus mr-2"></i>Nouveau Client</button>` : ''}
             </div>
         </div>
@@ -8573,6 +8574,209 @@ function openAddClientModal() {
     updateClientSiretHint();
     fillClientContactTypeSelect('Exploitant');
 }
+
+// ── Import clients depuis tableur ────────────────────────────────────────────
+
+const CLIENT_IMPORT_FIELDS = [
+    { key: 'name',            label: 'Nom *',           aliases: ['nom', 'name', 'client', 'raison sociale', 'société', 'societe', 'company'] },
+    { key: 'email',           label: 'Email',           aliases: ['email', 'mail', 'courriel', 'e-mail'] },
+    { key: 'phone',           label: 'Téléphone',       aliases: ['telephone', 'téléphone', 'tel', 'tél', 'phone', 'portable', 'mobile'] },
+    { key: 'address',         label: 'Adresse',         aliases: ['adresse', 'address', 'adresse postale'] },
+    { key: 'contact_name',    label: 'Contact',         aliases: ['contact', 'interlocuteur', 'contact_name', 'nom contact'] },
+    { key: 'siret',           label: 'SIRET',           aliases: ['siret', 'siren'] },
+    { key: 'tva',             label: 'N° TVA',          aliases: ['tva', 'tva intra', 'vat', 'n° tva', 'numéro tva'] },
+    { key: 'accounting_email',label: 'Email facturation',aliases: ['email facturation', 'accounting_email', 'facturation', 'compta'] },
+    { key: 'country',         label: 'Pays',            aliases: ['pays', 'country', 'code pays'] },
+    { key: '_skip',           label: '— Ignorer —',     aliases: [] }
+];
+
+function detectClientColumn(header) {
+    const h = String(header || '').toLowerCase().trim();
+    for (const f of CLIENT_IMPORT_FIELDS) {
+        if (f.key === '_skip') continue;
+        if (f.aliases.some((a) => h === a || h.includes(a))) return f.key;
+    }
+    return '_skip';
+}
+
+let _importClientRows = [];
+let _importClientMapping = {};
+
+window.openImportClientsModal = async function () {
+    if (typeof canManageClients === 'function' && !canManageClients()) return;
+
+    // Chargement lazy de SheetJS
+    if (!window.XLSX) {
+        await new Promise((resolve, reject) => {
+            const s = document.createElement('script');
+            s.src = 'https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js';
+            s.onload = resolve; s.onerror = reject;
+            document.head.appendChild(s);
+        });
+    }
+
+    _importClientRows = [];
+    _importClientMapping = {};
+
+    const overlay = document.createElement('div');
+    overlay.id = 'import-clients-overlay';
+    overlay.className = 'fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4';
+    overlay.innerHTML = `
+      <div class="bg-white rounded-xl shadow-xl w-full max-w-3xl max-h-[90vh] flex flex-col">
+        <div class="flex justify-between items-center px-6 py-4 border-b">
+          <h3 class="font-bold text-gray-800 text-base"><i class="fa-solid fa-file-import mr-2 text-green-600"></i>Importer des clients</h3>
+          <button onclick="closeImportClientsModal()" class="text-gray-400 hover:text-gray-700 text-xl leading-none">&times;</button>
+        </div>
+        <div class="overflow-y-auto flex-1 px-6 py-4 space-y-4">
+          <!-- Étape 1 : fichier -->
+          <div id="import-step-file">
+            <p class="text-sm text-gray-600 mb-3">Formats acceptés : <strong>.xlsx, .xls, .csv</strong>. La première ligne doit contenir les en-têtes de colonnes.</p>
+            <label class="flex flex-col items-center justify-center border-2 border-dashed border-gray-300 rounded-lg p-8 cursor-pointer hover:border-green-400 hover:bg-green-50 transition-colors">
+              <i class="fa-solid fa-cloud-arrow-up text-3xl text-gray-400 mb-2"></i>
+              <span class="text-sm text-gray-500">Cliquez ou déposez votre fichier ici</span>
+              <input type="file" accept=".xlsx,.xls,.csv" class="hidden" onchange="handleImportClientFile(this)">
+            </label>
+          </div>
+          <!-- Étape 2 : mapping + preview -->
+          <div id="import-step-mapping" class="hidden space-y-3">
+            <p class="text-sm font-medium text-gray-700">Correspondance des colonnes <span id="import-row-count" class="text-gray-400 font-normal"></span></p>
+            <div id="import-mapping-grid" class="grid grid-cols-2 sm:grid-cols-3 gap-2"></div>
+            <details class="text-xs">
+              <summary class="cursor-pointer text-gray-500 hover:text-gray-700">Aperçu des 5 premières lignes</summary>
+              <div id="import-preview-table" class="mt-2 overflow-x-auto"></div>
+            </details>
+          </div>
+          <!-- Étape 3 : résultat -->
+          <div id="import-step-result" class="hidden"></div>
+        </div>
+        <div class="flex justify-end gap-2 px-6 py-3 border-t">
+          <button onclick="closeImportClientsModal()" class="px-4 py-2 rounded border border-gray-300 text-sm text-gray-600 hover:bg-gray-50">Annuler</button>
+          <button id="import-clients-confirm-btn" onclick="runClientImport()" class="hidden px-4 py-2 rounded bg-green-600 text-white text-sm hover:bg-green-700 font-medium">
+            <i class="fa-solid fa-check mr-1"></i><span id="import-confirm-label">Importer</span>
+          </button>
+        </div>
+      </div>`;
+    document.body.appendChild(overlay);
+};
+
+window.closeImportClientsModal = function () {
+    document.getElementById('import-clients-overlay')?.remove();
+};
+
+window.handleImportClientFile = function (input) {
+    const file = input.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (e) => {
+        try {
+            const wb = window.XLSX.read(e.target.result, { type: 'array' });
+            const ws = wb.Sheets[wb.SheetNames[0]];
+            const json = window.XLSX.utils.sheet_to_json(ws, { header: 1, defval: '' });
+            if (!json.length || json[0].length === 0) {
+                showToast('Fichier vide ou illisible', 'error'); return;
+            }
+            const headers = json[0].map(String);
+            const dataRows = json.slice(1).filter((r) => r.some((c) => String(c).trim()));
+            if (!dataRows.length) { showToast('Aucune ligne de données trouvée', 'error'); return; }
+
+            _importClientRows = dataRows;
+            _importClientMapping = {};
+            headers.forEach((h, i) => { _importClientMapping[i] = detectClientColumn(h); });
+
+            renderImportMapping(headers, dataRows);
+        } catch (err) {
+            showToast('Impossible de lire le fichier : ' + err.message, 'error');
+        }
+    };
+    reader.readAsArrayBuffer(file);
+};
+
+function renderImportMapping(headers, dataRows) {
+    document.getElementById('import-step-file').classList.add('hidden');
+    document.getElementById('import-step-mapping').classList.remove('hidden');
+    document.getElementById('import-row-count').textContent = `— ${dataRows.length} ligne(s) détectée(s)`;
+
+    const optionsHtml = CLIENT_IMPORT_FIELDS.map((f) =>
+        `<option value="${f.key}">${f.label}</option>`).join('');
+
+    const grid = document.getElementById('import-mapping-grid');
+    grid.innerHTML = headers.map((h, i) => `
+      <div class="flex flex-col gap-0.5">
+        <span class="text-xs text-gray-500 truncate" title="${esc(h)}">${esc(h)}</span>
+        <select onchange="_importClientMapping[${i}]=this.value" class="border border-gray-200 rounded text-xs py-1 px-1.5 bg-white">
+          ${CLIENT_IMPORT_FIELDS.map((f) =>
+              `<option value="${f.key}" ${_importClientMapping[i] === f.key ? 'selected' : ''}>${f.label}</option>`
+          ).join('')}
+        </select>
+      </div>`).join('');
+
+    // Aperçu 5 lignes
+    const preview = document.getElementById('import-preview-table');
+    const previewRows = dataRows.slice(0, 5);
+    preview.innerHTML = `<table class="w-full text-xs border-collapse"><thead><tr>${headers.map((h) => `<th class="border border-gray-200 px-2 py-1 bg-gray-50 text-left">${esc(String(h))}</th>`).join('')}</tr></thead><tbody>${
+        previewRows.map((r) => `<tr>${headers.map((_, i) => `<td class="border border-gray-200 px-2 py-1">${esc(String(r[i] ?? ''))}</td>`).join('')}</tr>`).join('')
+    }</tbody></table>`;
+
+    document.getElementById('import-confirm-label').textContent = `Importer ${dataRows.length} client(s)`;
+    document.getElementById('import-clients-confirm-btn').classList.remove('hidden');
+}
+
+window.runClientImport = async function () {
+    const btn = document.getElementById('import-clients-confirm-btn');
+    if (!btn || btn.disabled) return;
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-1"></i>Import en cours…';
+
+    // Construire les objets à partir du mapping
+    const colIndexes = Object.entries(_importClientMapping);
+    const rows = _importClientRows.map((row) => {
+        const obj = {};
+        colIndexes.forEach(([colIdx, fieldKey]) => {
+            if (fieldKey === '_skip') return;
+            const val = String(row[Number(colIdx)] ?? '').trim();
+            if (val) obj[fieldKey] = val;
+        });
+        return obj;
+    }).filter((o) => o.name); // exclure les lignes sans nom
+
+    if (!rows.length) {
+        showToast('Aucune ligne valide (colonne "Nom" manquante ou vide)', 'error');
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fa-solid fa-check mr-1"></i>Importer';
+        return;
+    }
+
+    try {
+        const res = await apiFetch('clients/bulk-import', { method: 'POST', body: { rows } });
+        const data = await res.json().catch(() => ({}));
+
+        document.getElementById('import-step-mapping').classList.add('hidden');
+        const resultEl = document.getElementById('import-step-result');
+        resultEl.classList.remove('hidden');
+
+        if (res.ok && data.createdCount != null) {
+            const errHtml = data.errors?.length
+                ? `<ul class="mt-2 text-xs text-red-600 space-y-0.5 max-h-32 overflow-y-auto">${data.errors.map((e) => `<li>Ligne ${e.row}${e.name ? ` (${esc(e.name)})` : ''} : ${esc(e.error)}</li>`).join('')}</ul>`
+                : '';
+            resultEl.innerHTML = `<div class="p-4 rounded-lg ${data.errors?.length ? 'bg-amber-50 border border-amber-200' : 'bg-green-50 border border-green-200'}">
+              <p class="font-medium text-sm ${data.errors?.length ? 'text-amber-800' : 'text-green-800'}">
+                <i class="fa-solid fa-circle-check mr-1"></i>${data.createdCount} client(s) importé(s) avec succès${data.errors?.length ? `, ${data.errors.length} erreur(s)` : ''}.
+              </p>${errHtml}</div>`;
+            await fetchAllData({ only: ['clients'] });
+            router('clients');
+        } else {
+            resultEl.innerHTML = `<div class="p-4 rounded-lg bg-red-50 border border-red-200 text-sm text-red-700"><i class="fa-solid fa-circle-xmark mr-1"></i>${esc(data.error || 'Erreur lors de l\'import')}</div>`;
+        }
+
+        btn.textContent = 'Fermer';
+        btn.disabled = false;
+        btn.onclick = closeImportClientsModal;
+    } catch (err) {
+        showToast('Erreur réseau : ' + err.message, 'error');
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fa-solid fa-check mr-1"></i>Réessayer';
+    }
+};
 
 /**
  * Le SIREN n'est exigé (mention légale sur facture) que pour un client
