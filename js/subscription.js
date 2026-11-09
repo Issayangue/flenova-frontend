@@ -729,6 +729,7 @@ window.applyPlanBasedNav = function () {
         'closed_transports', 'cancelled_transports', 'chartered_transports',
         'create_order', 'cmr_preview'
     ]);
+    const chargeurRoutes = new Set(['chargeur_rate_cards', 'chargeur_contracts', 'chargeur_assignments', 'chargeur_carrier_invoices', 'chargeur_reporting']);
     document.querySelectorAll('[data-nav-route]').forEach((el) => {
         const route = el.dataset.navRoute;
         if (el.style.display === 'none') return;
@@ -736,6 +737,7 @@ window.applyPlanBasedNav = function () {
         if (['pricing', 'contact', 'about', 'solutions', 'onboarding', 'feedback', 'tracking'].includes(route)) return;
         if (route === 'platform_ops' || route === 'platform_crm') return;
         if (transportRoutes.has(route)) return;
+        if (chargeurRoutes.has(route) && (typeof currentUser !== 'undefined' && currentUser?.chargeur_enabled)) return;
         if (!sub.allowedRoutes.includes(route)) {
             el.style.display = 'none';
         }
@@ -748,6 +750,10 @@ window.planHasFeature = function (featureKey) {
 
 window.canAccessPlanRoute = function (routeName) {
     if (routeName === 'platform_ops' || routeName === 'platform_crm') return !!currentUser?.isPlatformAdmin;
+    const chargeurRoutes = new Set(['chargeur_rate_cards', 'chargeur_contracts', 'chargeur_assignments', 'chargeur_carrier_invoices', 'chargeur_reporting']);
+    if (chargeurRoutes.has(routeName)) {
+        return !!(typeof currentUser !== 'undefined' && currentUser?.chargeur_enabled);
+    }
     const sub = window.cachedSubscription;
     // Accès suspendu : seules pages de régularisation
     if (sub?.accessSuspended || (sub?.needsPayment && !sub?.gracePeriod && !sub?.isDemo)) {

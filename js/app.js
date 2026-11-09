@@ -12325,8 +12325,308 @@ async function loadChargeurReporting() {
     }
 }
 
-// Stubs pour les boutons "Nouveau" — à implémenter avec modales
-function openNewRateCardModal() { showToast('Formulaire grille tarifaire — à venir', 'info'); }
-function openNewContractModal() { showToast('Formulaire contrat — à venir', 'info'); }
-function openNewAssignmentModal() { showToast('Formulaire affectation — à venir', 'info'); }
-function openUploadInvoiceModal() { showToast('Import facture PDF — à venir', 'info'); }
+// ── Chargeur modal helper ────────────────────────────────────────────────────
+function openChargeurModal(html) {
+    const existing = document.getElementById('chargeur-modal-backdrop');
+    if (existing) existing.remove();
+    const backdrop = document.createElement('div');
+    backdrop.id = 'chargeur-modal-backdrop';
+    backdrop.className = 'fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4';
+    backdrop.innerHTML = `<div class="bg-white rounded-xl shadow-xl w-full max-w-lg max-h-[90vh] overflow-y-auto">${html}</div>`;
+    backdrop.addEventListener('click', e => { if (e.target === backdrop) closeChargeurModal(); });
+    document.body.appendChild(backdrop);
+}
+
+function closeChargeurModal() {
+    const el = document.getElementById('chargeur-modal-backdrop');
+    if (el) el.remove();
+}
+window.closeChargeurModal = closeChargeurModal;
+
+// ── Nouvelle grille tarifaire ────────────────────────────────────────────────
+async function openNewRateCardModal() {
+    openChargeurModal(`
+      <div class="p-6">
+        <div class="flex items-center justify-between mb-5">
+          <h3 class="text-lg font-semibold text-gray-900 flex items-center gap-2"><i class="fa-solid fa-table-list text-indigo-600"></i>Nouvelle grille tarifaire</h3>
+          <button onclick="closeChargeurModal()" class="text-gray-400 hover:text-gray-600 p-1"><i class="fa-solid fa-xmark text-xl"></i></button>
+        </div>
+        <form id="rc-form" class="space-y-4">
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Nom <span class="text-red-500">*</span></label>
+            <input type="text" id="rc-name" required class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" placeholder="Tarif Standard 2026">
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Transporteur</label>
+            <select id="rc-carrier" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+              <option value="">— Général (tous transporteurs) —</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Type de tarif <span class="text-red-500">*</span></label>
+            <select id="rc-type" required onchange="toggleRcPerUnit()" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm">
+              <option value="flat">Forfait fixe</option>
+              <option value="per_km">Au kilomètre</option>
+              <option value="per_palette">À la palette</option>
+              <option value="hybrid">Hybride (fixe + variable)</option>
+            </select>
+          </div>
+          <div class="grid grid-cols-2 gap-3">
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Tarif de base (€) <span class="text-red-500">*</span></label>
+              <input type="number" id="rc-base" required min="0" step="0.01" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm" placeholder="0.00">
+            </div>
+            <div id="rc-per-unit-wrap" class="hidden">
+              <label class="block text-sm font-medium text-gray-700 mb-1">Tarif unitaire (€)</label>
+              <input type="number" id="rc-per-unit" min="0" step="0.0001" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm" placeholder="0.00">
+            </div>
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Valide à partir du <span class="text-red-500">*</span></label>
+            <input type="date" id="rc-from" required class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm">
+          </div>
+          <div class="flex justify-end gap-3 pt-2 border-t border-gray-100">
+            <button type="button" onclick="closeChargeurModal()" class="px-4 py-2 text-sm text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50">Annuler</button>
+            <button type="submit" id="rc-submit" class="px-4 py-2 text-sm bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 font-medium">Créer</button>
+          </div>
+        </form>
+      </div>`);
+
+    document.getElementById('rc-from').value = new Date().toISOString().slice(0, 10);
+    try {
+        const res = await apiFetch('subcontractors');
+        if (res.ok) {
+            const carriers = (await res.json()).data || [];
+            const sel = document.getElementById('rc-carrier');
+            if (sel) carriers.forEach(c => { const o = document.createElement('option'); o.value = c.id; o.textContent = c.name; sel.appendChild(o); });
+        }
+    } catch (_) {}
+
+    document.getElementById('rc-form').addEventListener('submit', async e => {
+        e.preventDefault();
+        const type = document.getElementById('rc-type').value;
+        const structure = { type, base: parseFloat(document.getElementById('rc-base').value) || 0 };
+        if (type !== 'flat') structure.per_unit = parseFloat(document.getElementById('rc-per-unit').value) || 0;
+        const carrierId = document.getElementById('rc-carrier').value;
+        const payload = { name: document.getElementById('rc-name').value.trim(), carrier_type: carrierId ? 'SUBCONTRACTED' : null, carrier_id: carrierId ? parseInt(carrierId) : null, effective_from: document.getElementById('rc-from').value, structure };
+        const btn = document.getElementById('rc-submit');
+        btn.disabled = true; btn.textContent = 'Création...';
+        try {
+            const res = await apiFetch('chargeur/rate-cards', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+            const data = await res.json();
+            if (res.ok) { showToast('Grille tarifaire créée', 'success'); closeChargeurModal(); loadChargeurRateCards(); }
+            else { showToast(data.error || 'Erreur lors de la création', 'error'); btn.disabled = false; btn.textContent = 'Créer'; }
+        } catch (_) { showToast('Erreur réseau', 'error'); btn.disabled = false; btn.textContent = 'Créer'; }
+    });
+}
+
+window.toggleRcPerUnit = function() {
+    const type = document.getElementById('rc-type')?.value;
+    const wrap = document.getElementById('rc-per-unit-wrap');
+    if (wrap) wrap.classList.toggle('hidden', type === 'flat');
+};
+
+// ── Nouveau contrat transporteur ─────────────────────────────────────────────
+async function openNewContractModal() {
+    openChargeurModal(`
+      <div class="p-6">
+        <div class="flex items-center justify-between mb-5">
+          <h3 class="text-lg font-semibold text-gray-900 flex items-center gap-2"><i class="fa-solid fa-file-contract text-indigo-600"></i>Nouveau contrat transporteur</h3>
+          <button onclick="closeChargeurModal()" class="text-gray-400 hover:text-gray-600 p-1"><i class="fa-solid fa-xmark text-xl"></i></button>
+        </div>
+        <form id="ct-form" class="space-y-4">
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Transporteur <span class="text-red-500">*</span></label>
+            <select id="ct-carrier" required class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"><option value="">— Choisir un transporteur —</option></select>
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Grille tarifaire associée</label>
+            <select id="ct-ratecard" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"><option value="">— Aucune grille —</option></select>
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Nom du contrat</label>
+            <input type="text" id="ct-name" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm" placeholder="Contrat 2026">
+          </div>
+          <div class="grid grid-cols-2 gap-3">
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Tolérance (%)</label>
+              <input type="number" id="ct-tolerance" min="0" max="100" step="0.1" value="5" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm">
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Volume engagé</label>
+              <input type="number" id="ct-volume" min="0" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm" placeholder="—">
+            </div>
+          </div>
+          <div class="grid grid-cols-2 gap-3">
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Début <span class="text-red-500">*</span></label>
+              <input type="date" id="ct-start" required class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm">
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Fin (optionnel)</label>
+              <input type="date" id="ct-end" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm">
+            </div>
+          </div>
+          <div class="flex justify-end gap-3 pt-2 border-t border-gray-100">
+            <button type="button" onclick="closeChargeurModal()" class="px-4 py-2 text-sm text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50">Annuler</button>
+            <button type="submit" id="ct-submit" class="px-4 py-2 text-sm bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 font-medium">Créer</button>
+          </div>
+        </form>
+      </div>`);
+
+    document.getElementById('ct-start').value = new Date().toISOString().slice(0, 10);
+    try {
+        const [carriersRes, rcRes] = await Promise.all([apiFetch('subcontractors'), apiFetch('chargeur/rate-cards')]);
+        if (carriersRes.ok) {
+            const carriers = (await carriersRes.json()).data || [];
+            const sel = document.getElementById('ct-carrier');
+            if (sel) carriers.forEach(c => { const o = document.createElement('option'); o.value = c.id; o.textContent = c.name; sel.appendChild(o); });
+        }
+        if (rcRes.ok) {
+            const rcs = (await rcRes.json()).data || [];
+            const sel = document.getElementById('ct-ratecard');
+            if (sel) rcs.forEach(rc => { const o = document.createElement('option'); o.value = rc.id; o.textContent = rc.name; sel.appendChild(o); });
+        }
+    } catch (_) {}
+
+    document.getElementById('ct-form').addEventListener('submit', async e => {
+        e.preventDefault();
+        const carrierId = document.getElementById('ct-carrier').value;
+        if (!carrierId) { showToast('Sélectionnez un transporteur', 'error'); return; }
+        const rcId = document.getElementById('ct-ratecard').value;
+        const payload = { carrier_id: parseInt(carrierId), carrier_type: 'SUBCONTRACTED', rate_card_id: rcId ? parseInt(rcId) : null, name: document.getElementById('ct-name').value.trim() || null, tolerance_pct: parseFloat(document.getElementById('ct-tolerance').value) || 5, volume_committed: document.getElementById('ct-volume').value ? parseInt(document.getElementById('ct-volume').value) : null, start_date: document.getElementById('ct-start').value, end_date: document.getElementById('ct-end').value || null };
+        const btn = document.getElementById('ct-submit');
+        btn.disabled = true; btn.textContent = 'Création...';
+        try {
+            const res = await apiFetch('chargeur/contracts', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+            const data = await res.json();
+            if (res.ok) { showToast('Contrat créé', 'success'); closeChargeurModal(); loadChargeurContracts(); }
+            else { showToast(data.error || 'Erreur lors de la création', 'error'); btn.disabled = false; btn.textContent = 'Créer'; }
+        } catch (_) { showToast('Erreur réseau', 'error'); btn.disabled = false; btn.textContent = 'Créer'; }
+    });
+}
+
+// ── Moteur d'affectation ─────────────────────────────────────────────────────
+async function openNewAssignmentModal() {
+    openChargeurModal(`
+      <div class="p-6">
+        <div class="flex items-center justify-between mb-5">
+          <h3 class="text-lg font-semibold text-gray-900 flex items-center gap-2"><i class="fa-solid fa-network-wired text-indigo-600"></i>Moteur d'affectation</h3>
+          <button onclick="closeChargeurModal()" class="text-gray-400 hover:text-gray-600 p-1"><i class="fa-solid fa-xmark text-xl"></i></button>
+        </div>
+        <div class="space-y-4">
+          <p class="text-sm text-gray-500">Sélectionnez un ordre à planifier pour que le moteur classe les transporteurs et confirme la meilleure affectation.</p>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Ordre de transport <span class="text-red-500">*</span></label>
+            <select id="asgn-order" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"><option value="">— Choisir un ordre —</option></select>
+          </div>
+          <button onclick="runChargeurAutoAssign()" id="asgn-btn" class="w-full py-2 bg-indigo-600 text-white text-sm font-medium rounded-lg hover:bg-indigo-700 flex items-center justify-center gap-2">
+            <i class="fa-solid fa-magnifying-glass"></i>Analyser et affecter automatiquement
+          </button>
+          <div id="asgn-results"></div>
+        </div>
+      </div>`);
+
+    try {
+        const res = await apiFetch('orders?limit=100');
+        if (res.ok) {
+            const orders = (await res.json()).data || [];
+            const pending = orders.filter(o => ['Brouillon', 'À planifier'].includes(o.status));
+            const sel = document.getElementById('asgn-order');
+            if (sel) pending.forEach(o => {
+                const opt = document.createElement('option');
+                opt.value = o.id;
+                opt.dataset.origin = o.origin || '';
+                opt.dataset.dest = o.dest || '';
+                opt.dataset.loadDate = o.load_date || '';
+                opt.dataset.weight = o.weight || '';
+                opt.dataset.pallets = o.pallet_count || '';
+                opt.textContent = `#${o.id} — ${o.ref || o.origin || '?'} → ${o.dest || '?'}`;
+                sel.appendChild(opt);
+            });
+        }
+    } catch (_) {}
+}
+
+window.runChargeurAutoAssign = async function() {
+    const sel = document.getElementById('asgn-order');
+    const orderId = sel?.value;
+    if (!orderId) { showToast('Sélectionnez un ordre', 'error'); return; }
+    const opt = sel.options[sel.selectedIndex];
+    const btn = document.getElementById('asgn-btn');
+    if (btn) { btn.disabled = true; btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Analyse en cours...'; }
+    const resultsEl = document.getElementById('asgn-results');
+    try {
+        const res = await apiFetch('chargeur/assignments/auto', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ order_id: parseInt(orderId), origin: opt.dataset.origin, dest: opt.dataset.dest, load_date: opt.dataset.loadDate, weight_kg: parseFloat(opt.dataset.weight) || null, pallet_count: parseInt(opt.dataset.pallets) || null, auto_confirm: true }) });
+        const data = await res.json();
+        if (res.ok) { showToast('Affectation confirmée : ' + (data.data?.carrier_name || 'transporteur sélectionné'), 'success'); closeChargeurModal(); loadChargeurAssignments(); }
+        else {
+            if (resultsEl) resultsEl.innerHTML = `<p class="text-sm text-red-500 mt-3 p-3 bg-red-50 rounded-lg">${escapeHtml(data.error || 'Aucun transporteur disponible pour cet ordre.')}</p>`;
+            if (btn) { btn.disabled = false; btn.innerHTML = '<i class="fa-solid fa-magnifying-glass"></i> Réessayer'; }
+        }
+    } catch (_) {
+        if (resultsEl) resultsEl.innerHTML = `<p class="text-sm text-red-500 mt-3 p-3 bg-red-50 rounded-lg">Erreur réseau</p>`;
+        if (btn) { btn.disabled = false; btn.innerHTML = '<i class="fa-solid fa-magnifying-glass"></i> Réessayer'; }
+    }
+};
+
+// ── Import facture transporteur ──────────────────────────────────────────────
+async function openUploadInvoiceModal() {
+    openChargeurModal(`
+      <div class="p-6">
+        <div class="flex items-center justify-between mb-5">
+          <h3 class="text-lg font-semibold text-gray-900 flex items-center gap-2"><i class="fa-solid fa-magnifying-glass-dollar text-indigo-600"></i>Importer une facture transporteur</h3>
+          <button onclick="closeChargeurModal()" class="text-gray-400 hover:text-gray-600 p-1"><i class="fa-solid fa-xmark text-xl"></i></button>
+        </div>
+        <form id="inv-form" class="space-y-4">
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Ordre de transport associé <span class="text-red-500">*</span></label>
+            <select id="inv-order" required class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"><option value="">— Choisir un ordre —</option></select>
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Montant facturé (€) <span class="text-red-500">*</span></label>
+            <input type="number" id="inv-amount" required min="0" step="0.01" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm" placeholder="0.00">
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Fichier facture (PDF ou JSON)</label>
+            <input type="file" id="inv-file" accept=".pdf,.json" class="w-full text-sm text-gray-500 border border-gray-300 rounded-lg px-3 py-2 file:mr-3 file:py-1 file:px-3 file:border-0 file:rounded file:text-xs file:bg-indigo-50 file:text-indigo-700">
+          </div>
+          <div class="flex justify-end gap-3 pt-2 border-t border-gray-100">
+            <button type="button" onclick="closeChargeurModal()" class="px-4 py-2 text-sm text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50">Annuler</button>
+            <button type="submit" id="inv-submit" class="px-4 py-2 text-sm bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 font-medium">Importer</button>
+          </div>
+        </form>
+      </div>`);
+
+    try {
+        const res = await apiFetch('orders?limit=100');
+        if (res.ok) {
+            const orders = (await res.json()).data || [];
+            const sel = document.getElementById('inv-order');
+            if (sel) orders.forEach(o => { const opt = document.createElement('option'); opt.value = o.id; opt.textContent = `#${o.id} — ${o.ref || o.origin || '?'} → ${o.dest || '?'}`; sel.appendChild(opt); });
+        }
+    } catch (_) {}
+
+    document.getElementById('inv-form').addEventListener('submit', async e => {
+        e.preventDefault();
+        const orderId = document.getElementById('inv-order').value;
+        if (!orderId) { showToast('Sélectionnez un ordre', 'error'); return; }
+        const amount = document.getElementById('inv-amount').value;
+        if (!amount) { showToast('Saisissez le montant', 'error'); return; }
+        const btn = document.getElementById('inv-submit');
+        btn.disabled = true; btn.textContent = 'Import...';
+        try {
+            const formData = new FormData();
+            formData.append('order_id', orderId);
+            formData.append('amount', amount);
+            const fileInput = document.getElementById('inv-file');
+            if (fileInput.files[0]) formData.append('file', fileInput.files[0]);
+            const token = localStorage.getItem('flenova_token');
+            const apiBase = typeof API_BASE !== 'undefined' ? API_BASE : '/api/v1';
+            const res = await fetch(`${apiBase}/chargeur/invoices/upload`, { method: 'POST', headers: token ? { Authorization: `Bearer ${token}` } : {}, body: formData });
+            const data = await res.json();
+            if (res.ok) { showToast('Facture importée et rapprochée', 'success'); closeChargeurModal(); loadChargeurCarrierInvoices(); }
+            else { showToast(data.error || 'Erreur lors de l\'import', 'error'); btn.disabled = false; btn.textContent = 'Importer'; }
+        } catch (_) { showToast('Erreur réseau', 'error'); btn.disabled = false; btn.textContent = 'Importer'; }
+    });
+}
