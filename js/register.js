@@ -165,7 +165,8 @@ if (registerForm) registerForm.addEventListener('submit', async (e) => {
 
     try {
         const turnstile_token = typeof getTurnstileToken === 'function' ? getTurnstileToken() : undefined;
-        const body = { company_name: companyName, name, email, password, plan, privacy_accepted: true };
+        const chargeurEnabled = document.getElementById('reg-chargeur')?.checked ?? false;
+        const body = { company_name: companyName, name, email, password, plan, privacy_accepted: true, chargeur_enabled: chargeurEnabled };
         if (turnstile_token) body.turnstile_token = turnstile_token;
 
         const response = await apiFetch('auth/register', {
