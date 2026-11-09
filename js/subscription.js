@@ -374,6 +374,76 @@ function renderAddonsPanel(sub) {
     </div>`;
 }
 
+function renderChargeurModulePanel() {
+    const user = typeof getCurrentUser === 'function' ? getCurrentUser() : null;
+    const isAdmin = user?.role === 'admin';
+    const enabled = !!(user?.chargeur_enabled);
+    const statusBadge = enabled
+        ? `<span class="inline-flex items-center gap-1 text-xs font-semibold text-green-700 bg-green-100 px-2 py-0.5 rounded-full"><i class="fa-solid fa-circle text-green-500 text-[8px]"></i>Activé</span>`
+        : `<span class="inline-flex items-center gap-1 text-xs font-semibold text-gray-500 bg-gray-100 px-2 py-0.5 rounded-full"><i class="fa-solid fa-circle text-gray-400 text-[8px]"></i>Désactivé</span>`;
+    const features = [
+        { icon: 'fa-table-list', label: 'Grilles tarifaires' },
+        { icon: 'fa-file-contract', label: 'Contrats transporteurs' },
+        { icon: 'fa-network-wired', label: 'Affectations automatiques' },
+        { icon: 'fa-magnifying-glass-dollar', label: 'Audit factures transporteur' },
+        { icon: 'fa-chart-column', label: 'Reporting coût/km & marge' }
+    ];
+    const featureList = features.map(f =>
+        `<li class="flex items-center gap-2 text-xs ${enabled ? 'text-indigo-700' : 'text-gray-400'}">
+            <i class="fa-solid ${f.icon} w-4 text-center ${enabled ? 'text-indigo-500' : 'text-gray-300'}"></i>${f.label}
+        </li>`
+    ).join('');
+    const toggleBtn = isAdmin
+        ? `<button type="button" id="chargeur-toggle-btn" onclick="toggleChargeurModule(${!enabled})"
+            class="mt-4 px-4 py-2 text-sm font-semibold rounded-lg border transition ${enabled
+                ? 'border-red-200 text-red-700 hover:bg-red-50'
+                : 'border-indigo-300 text-indigo-700 bg-indigo-50 hover:bg-indigo-100'}">
+            ${enabled ? 'Désactiver le module' : 'Activer le module'}
+           </button>`
+        : (enabled ? '' : `<p class="text-xs text-gray-500 mt-3">Contactez l'administrateur pour activer ce module.</p>`);
+
+    return `<div class="mt-6 max-w-xl mx-auto bg-white border border-indigo-200 rounded-xl p-6 shadow-sm text-left">
+        <div class="flex items-center justify-between mb-3">
+            <h3 class="font-bold text-gray-800 flex items-center gap-2">
+                <i class="fa-solid fa-truck-ramp-box text-indigo-600"></i>Module Chargeur
+            </h3>
+            ${statusBadge}
+        </div>
+        <p class="text-sm text-gray-500 mb-3">Outils dédiés aux donneurs d'ordre : pilotez vos transporteurs, contrôlez les coûts et auditez les factures.</p>
+        <ul class="grid grid-cols-1 sm:grid-cols-2 gap-1.5 mb-1">${featureList}</ul>
+        <p class="text-xs text-gray-400 mt-2">Tarif : inclus dans votre forfait ou 79 €/mois en option.</p>
+        ${toggleBtn}
+        <p id="chargeur-toggle-msg" class="text-sm mt-2 hidden"></p>
+    </div>`;
+}
+
+window.toggleChargeurModule = async function(enable) {
+    const btn = document.getElementById('chargeur-toggle-btn');
+    const msg = document.getElementById('chargeur-toggle-msg');
+    if (btn) { btn.disabled = true; btn.textContent = 'En cours...'; }
+    try {
+        const res = await apiFetch('chargeur/settings/module-toggle', {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ enabled: enable })
+        });
+        const data = await res.json().catch(() => ({}));
+        if (res.ok) {
+            if (typeof currentUser !== 'undefined' && currentUser) currentUser.chargeur_enabled = data.data?.chargeur_enabled;
+            if (typeof window.currentUser !== 'undefined' && window.currentUser) window.currentUser.chargeur_enabled = data.data?.chargeur_enabled;
+            if (typeof applyChargeurNav === 'function') applyChargeurNav();
+            if (msg) { msg.textContent = enable ? 'Module Chargeur activé.' : 'Module Chargeur désactivé.'; msg.classList.remove('hidden', 'text-red-600'); msg.classList.add('text-green-700'); }
+            setTimeout(() => { if (typeof router === 'function') router('pricing'); }, 800);
+        } else {
+            if (msg) { msg.textContent = data.error || 'Erreur lors de la mise à jour.'; msg.classList.remove('hidden', 'text-green-700'); msg.classList.add('text-red-600'); }
+            if (btn) btn.disabled = false;
+        }
+    } catch (_) {
+        if (msg) { msg.textContent = 'Erreur réseau.'; msg.classList.remove('hidden', 'text-green-700'); msg.classList.add('text-red-600'); }
+        if (btn) btn.disabled = false;
+    }
+};
+
 function renderBillingSummary(sub) {
     const billing = sub.billing;
     if (!billing) return '';
@@ -431,6 +501,7 @@ function renderAppPricingPage() {
             </div>`;
         })()}
         ${renderAddonsPanel(sub)}
+        ${renderChargeurModulePanel()}
         ${renderBillingSummary(sub)}
     </div>`;
 }

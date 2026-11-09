@@ -2,7 +2,7 @@
  * Register Logic — création entreprise + choix forfait
  */
 
-const VALID_PLANS = ['independant', 'pme', 'premium'];
+const VALID_PLANS = ['independant', 'pme', 'premium', 'chargeur_only'];
 
 function showToast(message, type = 'info') {
     const container = document.getElementById('toast-container');
@@ -116,22 +116,48 @@ function initPlanSelector() {
         window.history.replaceState({}, '', url);
     }
 
-    activateCard(initial);
-
-    document.querySelectorAll('.plan-card').forEach(card => {
-        card.addEventListener('click', () => activateCard(card.dataset.plan));
-    });
-
     const chargeurCheckbox = document.getElementById('reg-chargeur');
     const chargeurBlock = document.getElementById('chargeur-block');
-    if (chargeurCheckbox && chargeurBlock) {
-        function updateChargeurStyle() {
-            const checked = chargeurCheckbox.checked;
-            chargeurBlock.classList.toggle('border-indigo-400', checked);
-            chargeurBlock.classList.toggle('bg-indigo-50', checked);
-            chargeurBlock.classList.toggle('border-indigo-200', !checked);
-            chargeurBlock.classList.toggle('bg-white', !checked);
+
+    function updateChargeurStyle() {
+        if (!chargeurCheckbox || !chargeurBlock) return;
+        const checked = chargeurCheckbox.checked;
+        chargeurBlock.classList.toggle('border-indigo-400', checked);
+        chargeurBlock.classList.toggle('bg-indigo-50', checked);
+        chargeurBlock.classList.toggle('border-indigo-200', !checked);
+        chargeurBlock.classList.toggle('bg-white', !checked);
+    }
+
+    function syncChargeurForPlan(plan) {
+        if (!chargeurCheckbox) return;
+        if (plan === 'chargeur_only') {
+            chargeurCheckbox.checked = true;
+            chargeurCheckbox.disabled = true;
+            if (chargeurBlock) {
+                const label = chargeurBlock.querySelector('label');
+                if (label) label.title = 'Inclus dans le plan Chargeur seul';
+            }
+            const badge = chargeurBlock?.querySelector('.inline-block');
+            if (badge) badge.textContent = 'Inclus dans ce plan';
+        } else {
+            chargeurCheckbox.disabled = false;
+            const badge = chargeurBlock?.querySelector('.inline-block');
+            if (badge) badge.textContent = "Inclus dans l'essai";
         }
+        updateChargeurStyle();
+    }
+
+    activateCard(initial);
+    syncChargeurForPlan(initial);
+
+    document.querySelectorAll('.plan-card').forEach(card => {
+        card.addEventListener('click', () => {
+            activateCard(card.dataset.plan);
+            syncChargeurForPlan(card.dataset.plan);
+        });
+    });
+
+    if (chargeurCheckbox && chargeurBlock) {
         chargeurCheckbox.addEventListener('change', updateChargeurStyle);
         updateChargeurStyle();
     }

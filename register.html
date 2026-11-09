@@ -66,7 +66,7 @@
             <div>
                 <label class="block text-sm font-medium text-gray-700 mb-2">Votre profil après l'essai</label>
                 <input type="hidden" id="reg-plan" value="pme">
-                <div class="grid grid-cols-3 gap-2" id="plan-cards">
+                <div class="grid grid-cols-2 sm:grid-cols-4 gap-2" id="plan-cards">
 
                     <div class="plan-card cursor-pointer rounded-lg border-2 border-gray-200 bg-white p-3 transition-all select-none" data-plan="independant">
                         <div class="text-center mb-2">
@@ -104,6 +104,19 @@
                             <li><i class="fa-solid fa-check text-green-500 mr-1 w-3"></i>Tout PME</li>
                             <li><i class="fa-solid fa-check text-green-500 mr-1 w-3"></i>Multi-agences</li>
                             <li><i class="fa-solid fa-check text-green-500 mr-1 w-3"></i>API & intégrations</li>
+                        </ul>
+                    </div>
+
+                    <div class="plan-card cursor-pointer rounded-lg border-2 border-gray-200 bg-white p-3 transition-all select-none" data-plan="chargeur_only">
+                        <div class="text-center mb-2">
+                            <i class="fa-solid fa-truck-ramp-box text-indigo-400 text-base mb-1 block"></i>
+                            <p class="text-xs font-bold text-gray-800">Chargeur seul</p>
+                            <p class="text-xs text-gray-500">Donneur d'ordre</p>
+                        </div>
+                        <ul class="space-y-1 text-xs text-gray-600">
+                            <li><i class="fa-solid fa-check text-indigo-400 mr-1 w-3"></i>Grilles tarifaires</li>
+                            <li><i class="fa-solid fa-check text-indigo-400 mr-1 w-3"></i>Contrats & affectations</li>
+                            <li><i class="fa-solid fa-check text-indigo-400 mr-1 w-3"></i>Audit factures</li>
                         </ul>
                     </div>
 
@@ -162,7 +175,7 @@
     <script src="js/security.js?v=2a5e366b56"></script>
     <script src="js/api.js?v=d66a93bbec"></script>
     <script src="js/turnstile-auth.js?v=f3967caac1"></script>
-    <script src="js/register.js?v=57bdcd2505"></script>
+    <script src="js/register.js?v=57bdcd2506"></script>
     <script>initTurnstileWidget('register-turnstile');</script>
 </body>
 </html>

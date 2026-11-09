@@ -12140,11 +12140,30 @@ function chargeurPageShell(contentId, title, icon, description, onclickFn, btnLa
 }
 
 function renderChargeurRateCards() {
-    return chargeurPageShell(
-        'rate-cards', 'Grilles tarifaires', 'fa-table-list',
-        'Définissez vos grilles de prix par transporteur : tarifs à plat, au km, par palette, avec surcharges.',
-        'openNewRateCardModal', 'Nouvelle grille'
-    );
+    return `
+    <div class="fade-in p-4 md:p-6 max-w-6xl mx-auto">
+      <div class="flex items-center justify-between mb-6 flex-wrap gap-3">
+        <div>
+          <h2 class="text-xl font-bold text-gray-900 flex items-center gap-2">
+            <i class="fa-solid fa-table-list text-indigo-600"></i>Grilles tarifaires
+          </h2>
+          <p class="text-sm text-gray-500 mt-1">Définissez vos grilles de prix par transporteur : tarifs à plat, au km, par palette, avec surcharges.</p>
+        </div>
+        <div class="flex items-center gap-2">
+          <button onclick="openImportRateCardsModal()"
+            class="inline-flex items-center gap-2 bg-white border border-indigo-300 text-indigo-700 hover:bg-indigo-50 text-sm font-medium px-4 py-2 rounded-lg shadow-sm transition-colors">
+            <i class="fa-solid fa-file-import"></i>Importer tableur
+          </button>
+          <button onclick="openNewRateCardModal()"
+            class="inline-flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium px-4 py-2 rounded-lg shadow-sm transition-colors">
+            <i class="fa-solid fa-plus"></i>Nouvelle grille
+          </button>
+        </div>
+      </div>
+      <div id="rate-cards-content">
+        <div class="text-center py-12 text-gray-400"><i class="fa-solid fa-spinner fa-spin text-2xl"></i></div>
+      </div>
+    </div>`;
 }
 
 function renderChargeurContracts() {
@@ -12424,6 +12443,89 @@ window.toggleRcPerUnit = function() {
     const type = document.getElementById('rc-type')?.value;
     const wrap = document.getElementById('rc-per-unit-wrap');
     if (wrap) wrap.classList.toggle('hidden', type === 'flat');
+};
+
+// ── Import tableur grilles tarifaires ────────────────────────────────────────
+async function openImportRateCardsModal() {
+    openChargeurModal(`
+      <div class="p-6">
+        <div class="flex items-center justify-between mb-5">
+          <h3 class="text-lg font-semibold text-gray-900 flex items-center gap-2"><i class="fa-solid fa-file-import text-indigo-600"></i>Importer des grilles tarifaires</h3>
+          <button onclick="closeChargeurModal()" class="text-gray-400 hover:text-gray-600 p-1"><i class="fa-solid fa-xmark text-xl"></i></button>
+        </div>
+        <div class="mb-4 p-3 bg-indigo-50 rounded-lg text-xs text-indigo-800">
+          <p class="font-semibold mb-1">Colonnes attendues dans le fichier :</p>
+          <ul class="space-y-0.5">
+            <li><span class="font-medium">nom</span> — Nom de la grille (obligatoire)</li>
+            <li><span class="font-medium">type</span> — forfait / km / palette / hybride</li>
+            <li><span class="font-medium">tarif_base</span> — Montant de base en €</li>
+            <li><span class="font-medium">tarif_unitaire</span> — Tarif au km / palette (si applicable)</li>
+            <li><span class="font-medium">valide_de</span> — Date de début (AAAA-MM-JJ)</li>
+            <li><span class="font-medium">transporteur</span> — Nom ou ID (optionnel)</li>
+          </ul>
+          <p class="mt-2 text-indigo-600">Formats : .xlsx · .xls · .ods · .csv (5 Mo max)</p>
+        </div>
+        <div class="mb-4">
+          <label class="block text-sm font-medium text-gray-700 mb-1">Fichier <span class="text-red-500">*</span></label>
+          <input type="file" id="rc-import-file" accept=".xlsx,.xls,.ods,.csv"
+            class="block w-full text-sm text-gray-500 file:mr-3 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100 cursor-pointer">
+        </div>
+        <div id="rc-import-progress" class="hidden mb-3 p-3 bg-blue-50 rounded-lg text-sm text-blue-800">
+          <i class="fa-solid fa-spinner fa-spin mr-2"></i>Import en cours...
+        </div>
+        <div id="rc-import-result" class="hidden mb-3"></div>
+        <div class="flex justify-end gap-3 pt-2 border-t border-gray-100">
+          <button type="button" onclick="closeChargeurModal()" class="px-4 py-2 text-sm text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50">Annuler</button>
+          <button type="button" id="rc-import-submit" onclick="submitRateCardImport()" class="px-4 py-2 text-sm bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 font-medium">Importer</button>
+        </div>
+      </div>`);
+}
+
+window.submitRateCardImport = async function() {
+    const fileInput = document.getElementById('rc-import-file');
+    const btn = document.getElementById('rc-import-submit');
+    const progress = document.getElementById('rc-import-progress');
+    const result = document.getElementById('rc-import-result');
+    if (!fileInput?.files?.length) { showToast('Veuillez sélectionner un fichier', 'error'); return; }
+    btn.disabled = true;
+    progress.classList.remove('hidden');
+    result.classList.add('hidden');
+    try {
+        const token = typeof getToken === 'function' ? getToken() : (localStorage.getItem('token') || '');
+        const form = new FormData();
+        form.append('file', fileInput.files[0]);
+        const res = await fetch(`${typeof API_URL !== 'undefined' ? API_URL : '/api/v1'}/chargeur/rate-cards/import`, {
+            method: 'POST',
+            headers: { 'Authorization': `Bearer ${token}` },
+            body: form
+        });
+        const data = await res.json().catch(() => ({}));
+        progress.classList.add('hidden');
+        if (res.ok) {
+            const { created = 0, errors = [] } = data;
+            result.className = 'mb-3 p-3 rounded-lg text-sm';
+            if (errors.length) {
+                result.className += ' bg-amber-50 text-amber-800';
+                result.innerHTML = `<p class="font-semibold mb-1"><i class="fa-solid fa-check-circle text-green-500 mr-1"></i>${created} grille(s) importée(s).</p>`
+                    + (errors.length ? `<p class="text-xs mt-1">${errors.length} ligne(s) ignorée(s) : ${errors.map(e => `ligne ${e.row} — ${e.error}`).join('; ')}</p>` : '');
+            } else {
+                result.className += ' bg-green-50 text-green-800';
+                result.innerHTML = `<p><i class="fa-solid fa-check-circle mr-1"></i>${created} grille(s) importée(s) avec succès.</p>`;
+            }
+            result.classList.remove('hidden');
+            if (created > 0) { loadChargeurRateCards(); }
+            btn.disabled = false;
+        } else {
+            result.className = 'mb-3 p-3 bg-red-50 rounded-lg text-sm text-red-800';
+            result.innerHTML = `<p><i class="fa-solid fa-triangle-exclamation mr-1"></i>${data.error || 'Erreur lors de l\'import'}</p>`;
+            result.classList.remove('hidden');
+            btn.disabled = false;
+        }
+    } catch (_) {
+        progress.classList.add('hidden');
+        showToast('Erreur réseau lors de l\'import', 'error');
+        btn.disabled = false;
+    }
 };
 
 // ── Nouveau contrat transporteur ─────────────────────────────────────────────
