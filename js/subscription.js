@@ -429,8 +429,11 @@ window.toggleChargeurModule = async function(enable) {
         });
         const data = await res.json().catch(() => ({}));
         if (res.ok) {
-            if (typeof currentUser !== 'undefined' && currentUser) currentUser.chargeur_enabled = data.data?.chargeur_enabled;
-            if (typeof window.currentUser !== 'undefined' && window.currentUser) window.currentUser.chargeur_enabled = data.data?.chargeur_enabled;
+            const newValue = data.data?.chargeur_enabled;
+            if (typeof setCurrentUser === 'function' && typeof getCurrentUser === 'function') {
+                const stored = getCurrentUser();
+                if (stored) { stored.chargeur_enabled = newValue; setCurrentUser(stored); }
+            }
             if (typeof applyChargeurNav === 'function') applyChargeurNav();
             if (msg) { msg.textContent = enable ? 'Module Chargeur activé.' : 'Module Chargeur désactivé.'; msg.classList.remove('hidden', 'text-red-600'); msg.classList.add('text-green-700'); }
             setTimeout(() => { if (typeof router === 'function') router('pricing'); }, 800);

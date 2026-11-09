@@ -39,7 +39,8 @@ function sanitizeUserForStorage(user) {
         agency_id: user.agency_id ?? null,
         company_id: user.company_id,
         company_name: user.company_name || null,
-        isPlatformAdmin: !!user.isPlatformAdmin
+        isPlatformAdmin: !!user.isPlatformAdmin,
+        chargeur_enabled: user.chargeur_enabled ? 1 : 0
     };
 }
 
