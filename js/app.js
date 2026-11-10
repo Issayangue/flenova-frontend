@@ -1234,7 +1234,8 @@ window.updateAppCompanyHeader = updateAppCompanyHeader;
 function applyChargeurNav(user) {
     const nav = document.getElementById('chargeur-nav');
     if (!nav) return;
-    const enabled = user?.chargeur_enabled === 1 || user?.chargeur_enabled === true;
+    const u = user ?? (typeof getCurrentUser === 'function' ? getCurrentUser() : null);
+    const enabled = u?.chargeur_enabled === 1 || u?.chargeur_enabled === true;
     nav.classList.toggle('hidden', !enabled);
 }
 window.applyChargeurNav = applyChargeurNav;

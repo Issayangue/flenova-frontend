@@ -288,5 +288,6 @@ window.applyRoleBasedNav = function() {
         el.style.display = can(el.dataset.permModule, el.dataset.permAction) ? '' : 'none';
     });
     if (typeof applyPlanBasedNav === 'function') applyPlanBasedNav();
+    if (typeof applyChargeurNav === 'function') applyChargeurNav();
     hideEmptySidebarSections();
 };
