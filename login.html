@@ -42,6 +42,12 @@
                     <input type="password" id="login-password" placeholder="Saisissez votre mot de passe" autocomplete="current-password"
                         class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 placeholder:text-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
                 </div>
+                <div class="flex items-center justify-between">
+                    <label class="flex items-center gap-2 cursor-pointer select-none">
+                        <input type="checkbox" id="login-remember" class="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 cursor-pointer">
+                        <span class="text-sm text-gray-600">Se souvenir de moi</span>
+                    </label>
+                </div>
                 <div id="login-turnstile" class="hidden flex justify-center"></div>
                 <button type="submit"
                     class="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700">
@@ -92,6 +98,16 @@
                 document.getElementById('login-password')?.focus();
             }
         }
+        try {
+            const savedEmail = localStorage.getItem('remember_email');
+            if (savedEmail && !prefillEmail) {
+                const emailInput = document.getElementById('login-email');
+                if (emailInput) emailInput.value = savedEmail;
+                const rememberCb = document.getElementById('login-remember');
+                if (rememberCb) rememberCb.checked = true;
+                document.getElementById('login-password')?.focus();
+            }
+        } catch (_) {}
 
         function showToast(message, type = 'info') {
             const container = document.getElementById('toast-container');
@@ -132,9 +148,15 @@
 
                 if (response.ok && result.success) {
                     setCurrentUser(result.user);
+                    const rememberCb = document.getElementById('login-remember');
+                    if (rememberCb?.checked) {
+                        try { localStorage.setItem('remember_email', email); } catch (_) {}
+                    } else {
+                        try { localStorage.removeItem('remember_email'); } catch (_) {}
+                    }
                     showToast('Bienvenue ' + result.user.name + ' !', 'success');
                     setTimeout(() => {
-                        window.location.href = '/';
+                        window.location.replace('/');
                     }, 500);
                 } else if (result.code === 'EMAIL_NOT_VERIFIED') {
                     document.getElementById('unverified-msg').textContent =

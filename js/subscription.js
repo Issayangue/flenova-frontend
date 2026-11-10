@@ -411,7 +411,7 @@ function renderChargeurModulePanel() {
         </div>
         <p class="text-sm text-gray-500 mb-3">Outils dédiés aux donneurs d'ordre : pilotez vos transporteurs, contrôlez les coûts et auditez les factures.</p>
         <ul class="grid grid-cols-1 sm:grid-cols-2 gap-1.5 mb-1">${featureList}</ul>
-        <p class="text-xs text-gray-400 mt-2">Tarif : inclus dans votre forfait ou 79 €/mois en option.</p>
+        <p class="text-xs mt-2 ${enabled ? 'text-indigo-600 font-medium' : 'text-gray-400'}">Tarif : ${enabled ? '79 €/mois HT · inclus dans l\'estimation ci-dessous' : 'inclus dans votre forfait ou 79 €/mois en option'}</p>
         ${toggleBtn}
         <p id="chargeur-toggle-msg" class="text-sm mt-2 hidden"></p>
     </div>`;
@@ -450,10 +450,18 @@ window.toggleChargeurModule = async function(enable) {
 function renderBillingSummary(sub) {
     const billing = sub.billing;
     if (!billing) return '';
-    const parts = [`Estimation : <strong>${billing.totalMonthly ?? sub.priceMonthly} € HT/mois</strong>`];
+    const user = typeof getCurrentUser === 'function' ? getCurrentUser() : null;
+    const chargeurEnabled = !!(user?.chargeur_enabled);
+    const CHARGEUR_PRICE = 79;
+
+    const baseTotal = billing.totalMonthly ?? sub.priceMonthly ?? 0;
+    const grandTotal = chargeurEnabled ? baseTotal + CHARGEUR_PRICE : baseTotal;
+
+    const parts = [`Estimation : <strong>${grandTotal} € HT/mois</strong>`];
     const detail = [];
     if (billing.baseMonthly != null) detail.push(`forfait ${billing.baseMonthly} €`);
     if (billing.addonsMonthly > 0) detail.push(`suppléments ${billing.addonsMonthly} €`);
+    if (chargeurEnabled) detail.push(`Module Chargeur ${CHARGEUR_PRICE} €`);
     if (billing.affretementOverageMonthly > 0) {
         detail.push(`affrètement hors quota ${billing.affretementOverageMonthly.toFixed(2).replace('.', ',')} €`);
     }

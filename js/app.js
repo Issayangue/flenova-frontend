@@ -12488,20 +12488,21 @@ window.submitRateCardImport = async function() {
     const progress = document.getElementById('rc-import-progress');
     const result = document.getElementById('rc-import-result');
     if (!fileInput?.files?.length) { showToast('Veuillez sélectionner un fichier', 'error'); return; }
+    const selectedFile = fileInput.files[0];
+    console.log('[import rate-cards] fichier:', selectedFile.name, selectedFile.type, selectedFile.size, 'octets');
     btn.disabled = true;
     progress.classList.remove('hidden');
     result.classList.add('hidden');
     try {
-        const token = typeof getToken === 'function' ? getToken() : (localStorage.getItem('token') || '');
         const form = new FormData();
-        form.append('file', fileInput.files[0]);
-        const res = await fetch(`${typeof API_URL !== 'undefined' ? API_URL : '/api/v1'}/chargeur/rate-cards/import`, {
+        form.append('file', selectedFile);
+        const res = await apiFetch('chargeur/rate-cards/import', {
             method: 'POST',
-            headers: { 'Authorization': `Bearer ${token}` },
             body: form
         });
         const data = await res.json().catch(() => ({}));
         progress.classList.add('hidden');
+        if (!res.ok) console.error('[import rate-cards] 400 détail:', data);
         if (res.ok) {
             const { created = 0, errors = [] } = data;
             result.className = 'mb-3 p-3 rounded-lg text-sm';
