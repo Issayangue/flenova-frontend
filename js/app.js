@@ -970,7 +970,7 @@ function updatePublicNav(route) {
     });
 }
 
-const PUBLIC_SEO_BASE = 'https://app.flenova.fr';
+const PUBLIC_SEO_BASE = 'https://www.flenova.fr';
 const PUBLIC_SEO_BY_ROUTE = {
     home: {
         title: 'Flenova — Logiciel TMS pour transporteurs PME',
