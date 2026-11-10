@@ -810,7 +810,7 @@ window.applyPlanBasedNav = function () {
         if (!sub?.allowedRoutes) return;
         if (['pricing', 'contact', 'about', 'solutions', 'onboarding', 'feedback', 'tracking'].includes(route)) return;
         if (route === 'platform_ops' || route === 'platform_crm') return;
-        if (transportRoutes.has(route)) return;
+        if (transportRoutes.has(route) && !sub.chargeurOnly) return;
         if (chargeurRoutes.has(route) && (typeof currentUser !== 'undefined' && currentUser?.chargeur_enabled)) return;
         if (!sub.allowedRoutes.includes(route)) {
             el.style.display = 'none';
